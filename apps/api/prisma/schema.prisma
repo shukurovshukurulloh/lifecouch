@@ -106,7 +106,23 @@ model Coach {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  sessions Session[]
+  sessions          Session[]
+  availabilitySlots AvailabilitySlot[]
+}
+
+/// An open time slot a coach publishes; becomes booked when a Session claims it.
+model AvailabilitySlot {
+  id        String   @id @default(cuid())
+  coachId   String
+  coach     Coach    @relation(fields: [coachId], references: [id], onDelete: Cascade)
+  startsAt  DateTime
+  endsAt    DateTime
+  isBooked  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  session Session?
+
+  @@index([coachId, startsAt])
 }
 
 model Goal {
@@ -149,17 +165,19 @@ model CheckIn {
 
 /// A booked coaching session between a User and a Coach (not an auth/HTTP session).
 model Session {
-  id              String        @id @default(cuid())
+  id              String            @id @default(cuid())
   userId          String
-  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   coachId         String
-  coach           Coach         @relation(fields: [coachId], references: [id], onDelete: Cascade)
+  coach           Coach             @relation(fields: [coachId], references: [id], onDelete: Cascade)
+  slotId          String?           @unique
+  slot            AvailabilitySlot? @relation(fields: [slotId], references: [id])
   scheduledAt     DateTime
-  durationMinutes Int           @default(60)
-  status          SessionStatus @default(PENDING)
+  durationMinutes Int               @default(60)
+  status          SessionStatus     @default(PENDING)
   videoLink       String?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
 }
 
 model Message {

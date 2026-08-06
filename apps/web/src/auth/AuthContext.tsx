@@ -67,8 +67,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const refreshProfile = useCallback(async () => {
-    const { user: freshUser } = await api.fetchMe();
-    setUser(freshUser);
+    // /auth/refresh orqali yangilaymiz (shunchaki /users/me emas) — chunki access token
+    // ichidagi `role` claim'i ham yangilanishi kerak (masalan, coach bo'lgandan keyin).
+    const session = await api.refresh();
+    setAccessToken(session.accessToken);
+    setUser(session.user);
   }, []);
 
   return (
