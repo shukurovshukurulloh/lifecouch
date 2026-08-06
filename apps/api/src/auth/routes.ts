@@ -1,0 +1,212 @@
+import crypto from "node:crypto";
+import type { Role } from "@prisma/client";
+import type { Response } from "express";
+import { Router } from "express";
+import { z } from "zod";
+import { prisma } from "../db.js";
+import { env } from "../env.js";
+import { asyncHandler } from "../lib/asyncHandler.js";
+import { sendPasswordResetEmail } from "../mailer.js";
+import { toPublicUser } from "../users/serialize.js";
+import { hashPassword, verifyPassword } from "./hash.js";
+import {
+  generateRefreshToken,
+  hashToken,
+  REFRESH_COOKIE_MAX_AGE_MS,
+  REFRESH_COOKIE_NAME,
+  REFRESH_COOKIE_PATH,
+  signAccessToken,
+} from "./tokens.js";
+
+export const authRouter = Router();
+
+const isProd = env.nodeEnv === "production";
+const RESET_TOKEN_TTL_MS = 60 * 60 * 1000; // 1 soat
+
+function setRefreshCookie(res: Response, token: string): void {
+  res.cookie(REFRESH_COOKIE_NAME, token, {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: "lax",
+    maxAge: REFRESH_COOKIE_MAX_AGE_MS,
+    path: REFRESH_COOKIE_PATH,
+  });
+}
+
+async function issueSession(res: Response, userId: string, role: Role): Promise<string> {
+  const accessToken = signAccessToken({ sub: userId, role });
+  const { token, tokenHash, expiresAt } = generateRefreshToken();
+  await prisma.refreshToken.create({ data: { userId, tokenHash, expiresAt } });
+  setRefreshCookie(res, token);
+  return accessToken;
+}
+
+const registerSchema = z.object({
+  email: z.string().email("Email formati noto'g'ri"),
+  password: z.string().min(8, "Parol kamida 8 belgidan iborat bo'lishi kerak"),
+  name: z.string().min(1, "Ism kiritilishi shart"),
+});
+
+authRouter.post(
+  "/register",
+  asyncHandler(async (req, res) => {
+    const parsed = registerSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.issues[0].message });
+      return;
+    }
+    const { email, password, name } = parsed.data;
+
+    const existing = await prisma.user.findUnique({ where: { email } });
+    if (existing) {
+      res.status(409).json({ error: "Bu email bilan foydalanuvchi allaqachon mavjud" });
+      return;
+    }
+
+    const passwordHash = await hashPassword(password);
+    const user = await prisma.user.create({ data: { email, passwordHash, name } });
+
+    const accessToken = await issueSession(res, user.id, user.role);
+    res.status(201).json({ accessToken, user: toPublicUser(user) });
+  }),
+);
+
+const loginSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(1),
+});
+
+authRouter.post(
+  "/login",
+  asyncHandler(async (req, res) => {
+    const parsed = loginSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: "Email yoki parol noto'g'ri formatda" });
+      return;
+    }
+    const { email, password } = parsed.data;
+
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user || !(await verifyPassword(password, user.passwordHash))) {
+      res.status(401).json({ error: "Email yoki parol noto'g'ri" });
+      return;
+    }
+
+    const accessToken = await issueSession(res, user.id, user.role);
+    res.json({ accessToken, user: toPublicUser(user) });
+  }),
+);
+
+authRouter.post(
+  "/refresh",
+  asyncHandler(async (req, res) => {
+    const token = req.cookies?.[REFRESH_COOKIE_NAME] as string | undefined;
+    if (!token) {
+      res.status(401).json({ error: "Refresh token topilmadi, qaytadan kiring" });
+      return;
+    }
+
+    const stored = await prisma.refreshToken.findUnique({ where: { tokenHash: hashToken(token) } });
+    if (!stored || stored.revokedAt || stored.expiresAt < new Date()) {
+      res.clearCookie(REFRESH_COOKIE_NAME, { path: REFRESH_COOKIE_PATH });
+      res.status(401).json({ error: "Sessiya muddati tugagan, qaytadan kiring" });
+      return;
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: stored.userId } });
+    if (!user) {
+      res.status(401).json({ error: "Foydalanuvchi topilmadi" });
+      return;
+    }
+
+    // Rotatsiya: har yangilashda eski refresh token bekor qilinadi.
+    await prisma.refreshToken.update({
+      where: { id: stored.id },
+      data: { revokedAt: new Date() },
+    });
+
+    const accessToken = await issueSession(res, user.id, user.role);
+    res.json({ accessToken, user: toPublicUser(user) });
+  }),
+);
+
+authRouter.post(
+  "/logout",
+  asyncHandler(async (req, res) => {
+    const token = req.cookies?.[REFRESH_COOKIE_NAME] as string | undefined;
+    if (token) {
+      await prisma.refreshToken.updateMany({
+        where: { tokenHash: hashToken(token), revokedAt: null },
+        data: { revokedAt: new Date() },
+      });
+    }
+    res.clearCookie(REFRESH_COOKIE_NAME, { path: REFRESH_COOKIE_PATH });
+    res.status(204).send();
+  }),
+);
+
+const forgotPasswordSchema = z.object({ email: z.string().email() });
+
+authRouter.post(
+  "/forgot-password",
+  asyncHandler(async (req, res) => {
+    const parsed = forgotPasswordSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: "Email formati noto'g'ri" });
+      return;
+    }
+
+    const user = await prisma.user.findUnique({ where: { email: parsed.data.email } });
+    // Email ro'yxatdan o'tganmi yo'qmi — bu bilan oshkor qilmaslik uchun javob har doim bir xil.
+    if (user) {
+      const token = crypto.randomBytes(32).toString("hex");
+      await prisma.passwordResetToken.create({
+        data: {
+          userId: user.id,
+          tokenHash: hashToken(token),
+          expiresAt: new Date(Date.now() + RESET_TOKEN_TTL_MS),
+        },
+      });
+      const resetLink = `${env.webOrigin}/reset-password?token=${token}`;
+      await sendPasswordResetEmail(user.email, resetLink);
+    }
+
+    res.json({ message: "Agar bu email ro'yxatdan o'tgan bo'lsa, tiklash havolasi yuborildi" });
+  }),
+);
+
+const resetPasswordSchema = z.object({
+  token: z.string().min(1),
+  password: z.string().min(8, "Parol kamida 8 belgidan iborat bo'lishi kerak"),
+});
+
+authRouter.post(
+  "/reset-password",
+  asyncHandler(async (req, res) => {
+    const parsed = resetPasswordSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.issues[0].message });
+      return;
+    }
+
+    const stored = await prisma.passwordResetToken.findUnique({
+      where: { tokenHash: hashToken(parsed.data.token) },
+    });
+    if (!stored || stored.usedAt || stored.expiresAt < new Date()) {
+      res.status(400).json({ error: "Havola yaroqsiz yoki muddati o'tgan" });
+      return;
+    }
+
+    const passwordHash = await hashPassword(parsed.data.password);
+    await prisma.$transaction([
+      prisma.user.update({ where: { id: stored.userId }, data: { passwordHash } }),
+      prisma.passwordResetToken.update({ where: { id: stored.id }, data: { usedAt: new Date() } }),
+      prisma.refreshToken.updateMany({
+        where: { userId: stored.userId, revokedAt: null },
+        data: { revokedAt: new Date() },
+      }),
+    ]);
+
+    res.json({ message: "Parol muvaffaqiyatli yangilandi, qaytadan kiring" });
+  }),
+);
