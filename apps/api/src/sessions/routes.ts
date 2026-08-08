@@ -1,7 +1,8 @@
-import { SessionStatus } from "@prisma/client";
+import { SessionStatus, SubscriptionPlan } from "@prisma/client";
 import { Router } from "express";
 import { z } from "zod";
 import { requireAuth } from "../auth/middleware.js";
+import { requirePlan } from "../billing/gate.js";
 import { prisma } from "../db.js";
 import { asyncHandler } from "../lib/asyncHandler.js";
 import { generateVideoLink } from "./video.js";
@@ -35,6 +36,7 @@ const bookSchema = z.object({ slotId: z.string().min(1) });
 
 sessionsRouter.post(
   "/",
+  requirePlan(SubscriptionPlan.PRO, SubscriptionPlan.PREMIUM),
   asyncHandler(async (req, res) => {
     const parsed = bookSchema.safeParse(req.body);
     if (!parsed.success) {

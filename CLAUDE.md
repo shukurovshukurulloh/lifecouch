@@ -16,3 +16,11 @@ ish jurnali `sprints/*.md` fayllarida, umumiy vizual holat `loyiha-panel.html`da
   `AuthContext.refreshProfile()` chaqirilishi kerak, u `api.refresh()`dan foydalanadi
   — `api.fetchMe()` emas, chunki faqat `refresh` yangilangan `role` claim'li access
   token qaytaradi.
+
+## Tashqi xizmatlar konventsiyasi
+
+- Hali ulanmagan tashqi xizmat (email, video-konferensiya, to'lov va h.k.) uchun
+  tegishli modul mos `.env` kaliti bo'lmasa avtomatik lokal stub'ga o'tishi kerak
+  (masalan `mailer.ts`, `sessions/video.ts`, `billing/stripeClient.ts`). Kalit
+  qo'shilganda xatti-harakat xuddi shu kod orqali haqiqiy xizmatga o'tishi kerak —
+  chaqiruvchi tomon (route/service) kodini o'zgartirish shart bo'lmasligi kerak.

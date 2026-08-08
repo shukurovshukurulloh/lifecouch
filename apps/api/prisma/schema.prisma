@@ -66,6 +66,7 @@ model User {
 
   refreshTokens       RefreshToken[]
   passwordResetTokens PasswordResetToken[]
+  invoices            Invoice[]
 }
 
 /// Persisted, rotatable refresh token backing the JWT access-token flow.
@@ -204,4 +205,19 @@ model Subscription {
   currentPeriodEnd     DateTime?
   createdAt            DateTime            @default(now())
   updatedAt            DateTime            @updatedAt
+}
+
+/// Billing tarixi yozuvi — obuna yaratilganda/yangilanganda qo'shiladi (Stripe invoice yoki stub to'lov).
+model Invoice {
+  id              String           @id @default(cuid())
+  userId          String
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan            SubscriptionPlan
+  amountCents     Int
+  currency        String           @default("USD")
+  status          String
+  stripeInvoiceId String?          @unique
+  createdAt       DateTime         @default(now())
+
+  @@index([userId])
 }

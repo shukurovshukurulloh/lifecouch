@@ -90,4 +90,36 @@ export interface ChatMessage {
   createdAt: string;
 }
 
+export type SubscriptionPlan = "FREE" | "PRO" | "PREMIUM";
+export type SubscriptionStatus = "ACTIVE" | "PAST_DUE" | "CANCELED" | "TRIALING";
+
+export interface PlanDefinitionDto {
+  id: SubscriptionPlan;
+  name: string;
+  priceCents: number;
+  currency: string;
+  maxActiveGoals: number | null;
+  coachBookingAllowed: boolean;
+  features: string[];
+}
+
+export interface SubscriptionDto {
+  id: string;
+  userId: string;
+  plan: SubscriptionPlan;
+  status: SubscriptionStatus;
+  currentPeriodEnd: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface InvoiceDto {
+  id: string;
+  plan: SubscriptionPlan;
+  amountCents: number;
+  currency: string;
+  status: string;
+  createdAt: string;
+}
+
 // Qolgan request/response DTOlari sprint-sprint qo'shib boriladi.

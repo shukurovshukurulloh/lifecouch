@@ -64,7 +64,14 @@ authRouter.post(
     }
 
     const passwordHash = await hashPassword(password);
-    const user = await prisma.user.create({ data: { email, passwordHash, name } });
+    const user = await prisma.$transaction(async (tx) => {
+      const created = await tx.user.create({ data: { email, passwordHash, name } });
+      // Har bir foydalanuvchi FREE obuna bilan boshlaydi (billing/service.ts'dagi
+      // ensureSubscription buni lazily ham yaratadi, lekin bu yerda ham qilib qo'yish
+      // "har bir userda Subscription bor" invariantini soddalashtiradi).
+      await tx.subscription.create({ data: { userId: created.id } });
+      return created;
+    });
 
     const accessToken = await issueSession(res, user.id, user.role);
     res.status(201).json({ accessToken, user: toPublicUser(user) });

@@ -2,6 +2,8 @@ import { GoalStatus, HabitFrequency } from "@prisma/client";
 import { Router } from "express";
 import { z } from "zod";
 import { requireAuth } from "../auth/middleware.js";
+import { countActiveGoals, ensureSubscription } from "../billing/service.js";
+import { PLAN_CATALOG } from "../billing/plans.js";
 import { prisma } from "../db.js";
 import { asyncHandler } from "../lib/asyncHandler.js";
 import { toDbDate, todayKey } from "./dates.js";
@@ -67,6 +69,19 @@ goalsRouter.post(
       res.status(400).json({ error: parsed.error.issues[0].message });
       return;
     }
+
+    const subscription = await ensureSubscription(req.user!.id);
+    const maxActiveGoals = PLAN_CATALOG[subscription.plan].maxActiveGoals;
+    if (maxActiveGoals !== null) {
+      const activeCount = await countActiveGoals(req.user!.id);
+      if (activeCount >= maxActiveGoals) {
+        res.status(402).json({
+          error: `Free rejada faqat ${maxActiveGoals} ta faol maqsad mumkin. Ko'proq maqsad uchun "Tarif" bo'limidan Pro'ga o'ting.`,
+        });
+        return;
+      }
+    }
+
     const { title, description, category, targetDate } = parsed.data;
     const goal = await prisma.goal.create({
       data: {

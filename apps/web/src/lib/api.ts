@@ -4,9 +4,13 @@ import type {
   ChatMessage,
   GoalWithHabits,
   HabitProgress,
+  InvoiceDto,
+  PlanDefinitionDto,
   PublicCoach,
   PublicUser,
   SessionBooking,
+  SubscriptionDto,
+  SubscriptionPlan,
 } from "@lifecouch/shared";
 
 const API_BASE = "/api";
@@ -137,4 +141,20 @@ export function cancelSession(sessionId: string): Promise<void> {
 
 export function fetchChatHistory(otherUserId: string): Promise<{ messages: ChatMessage[] }> {
   return request(`/chat/${otherUserId}/messages`);
+}
+
+export function fetchBillingPlans(): Promise<{ plans: PlanDefinitionDto[]; subscription: SubscriptionDto }> {
+  return request("/billing/plans");
+}
+
+export function fetchInvoices(): Promise<{ invoices: InvoiceDto[] }> {
+  return request("/billing/invoices");
+}
+
+export function checkout(plan: SubscriptionPlan): Promise<{ url: string | null; subscription: SubscriptionDto }> {
+  return request("/billing/checkout", { method: "POST", body: JSON.stringify({ plan }) });
+}
+
+export function cancelSubscription(): Promise<{ subscription: SubscriptionDto }> {
+  return request("/billing/cancel", { method: "POST" });
 }

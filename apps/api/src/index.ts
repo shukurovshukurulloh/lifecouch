@@ -5,6 +5,7 @@ import express from "express";
 import type { NextFunction, Request, Response } from "express";
 import { adminRouter } from "./admin/routes.js";
 import { authRouter } from "./auth/routes.js";
+import { billingRouter, billingWebhookHandler } from "./billing/routes.js";
 import { chatRouter } from "./chat/routes.js";
 import { createChatServer } from "./chat/socket.js";
 import { coachesRouter } from "./coaches/routes.js";
@@ -18,6 +19,11 @@ const app = express();
 
 app.use(cors({ origin: env.webOrigin, credentials: true }));
 app.use(cookieParser());
+
+// Stripe webhook imzosi xom (raw) body'ga muhtoj — shuning uchun express.json()dan OLDIN,
+// alohida raw parser bilan ulanadi.
+app.post("/api/billing/webhook", express.raw({ type: "application/json" }), billingWebhookHandler);
+
 app.use(express.json());
 
 app.get("/health", (_req, res) => {
@@ -31,6 +37,7 @@ app.use("/api/goals", goalsRouter);
 app.use("/api/coaches", coachesRouter);
 app.use("/api/sessions", sessionsRouter);
 app.use("/api/chat", chatRouter);
+app.use("/api/billing", billingRouter);
 
 app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
   console.error(err);
