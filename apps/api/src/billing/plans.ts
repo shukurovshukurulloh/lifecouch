@@ -8,6 +8,8 @@ export interface PlanDefinition {
   /** null — cheklovsiz. */
   maxActiveGoals: number | null;
   coachBookingAllowed: boolean;
+  /** Kuniga yuborilishi mumkin bo'lgan AI coach xabarlari soni. null — cheklovsiz. */
+  aiMessagesPerDay: number | null;
   features: string[];
 }
 
@@ -24,7 +26,8 @@ export const PLAN_CATALOG: Record<SubscriptionPlan, PlanDefinition> = {
     currency: "USD",
     maxActiveGoals: 3,
     coachBookingAllowed: false,
-    features: ["3 tagacha faol maqsad", "Odat kuzatuvi", "Streak statistikasi"],
+    aiMessagesPerDay: 5,
+    features: ["3 tagacha faol maqsad", "Odat kuzatuvi", "Streak statistikasi", "Kuniga 5 ta AI coach xabari"],
   },
   PRO: {
     id: SubscriptionPlan.PRO,
@@ -33,7 +36,8 @@ export const PLAN_CATALOG: Record<SubscriptionPlan, PlanDefinition> = {
     currency: "USD",
     maxActiveGoals: null,
     coachBookingAllowed: true,
-    features: ["Cheksiz maqsad", "Coach bilan sessiya bron qilish", "Real-time chat"],
+    aiMessagesPerDay: 50,
+    features: ["Cheksiz maqsad", "Coach bilan sessiya bron qilish", "Real-time chat", "Kuniga 50 ta AI coach xabari"],
   },
   PREMIUM: {
     id: SubscriptionPlan.PREMIUM,
@@ -42,7 +46,13 @@ export const PLAN_CATALOG: Record<SubscriptionPlan, PlanDefinition> = {
     currency: "USD",
     maxActiveGoals: null,
     coachBookingAllowed: true,
-    features: ["Pro'dagi barcha imkoniyatlar", "Ustuvor coach qo'llab-quvvatlash", "Kengaytirilgan statistika (tez orada)"],
+    aiMessagesPerDay: null,
+    features: [
+      "Pro'dagi barcha imkoniyatlar",
+      "Ustuvor coach qo'llab-quvvatlash",
+      "Cheksiz AI coach xabari",
+      "Kengaytirilgan statistika (tez orada)",
+    ],
   },
 };
 

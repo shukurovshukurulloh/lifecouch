@@ -16,4 +16,8 @@ export const env = {
   // Bo'lmasa billing/stripeClient.ts checkout/webhook oqimini lokal stub bilan simulyatsiya qiladi.
   stripeSecretKey: process.env.STRIPE_SECRET_KEY,
   stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
+  // Claude API kaliti hali ulanmagan bo'lishi mumkin (dev muhitda) — shu sabab ixtiyoriy.
+  // Bo'lmasa ai/client.ts AI coach javoblarini lokal stub bilan simulyatsiya qiladi.
+  anthropicApiKey: process.env.ANTHROPIC_API_KEY,
+  anthropicModel: process.env.ANTHROPIC_MODEL ?? "claude-sonnet-5",
 };

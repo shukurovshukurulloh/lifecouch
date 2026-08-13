@@ -1,5 +1,6 @@
 import { useState } from "react";
 import "./App.css";
+import { AiCoachPage } from "./ai/AiCoachPage";
 import { AuthForms } from "./auth/AuthForms";
 import { AuthProvider, useAuth } from "./auth/AuthContext";
 import { BillingPage } from "./billing/BillingPage";
@@ -9,7 +10,7 @@ import { GoalsPage } from "./goals/GoalsPage";
 import { ProfilePage } from "./profile/ProfilePage";
 import { MySessionsPage } from "./sessions/MySessionsPage";
 
-type Tab = "goals" | "coaches" | "sessions" | "chat" | "billing" | "profile";
+type Tab = "goals" | "coaches" | "sessions" | "chat" | "ai" | "billing" | "profile";
 
 function Dashboard() {
   const [tab, setTab] = useState<Tab>("goals");
@@ -35,6 +36,9 @@ function Dashboard() {
         <button type="button" className={tab === "chat" ? "active" : ""} onClick={() => setTab("chat")}>
           Xabarlar
         </button>
+        <button type="button" className={tab === "ai" ? "active" : ""} onClick={() => setTab("ai")}>
+          AI Coach
+        </button>
         <button type="button" className={tab === "billing" ? "active" : ""} onClick={() => setTab("billing")}>
           Tarif
         </button>
@@ -47,6 +51,7 @@ function Dashboard() {
       {tab === "coaches" && <CoachesPage onOpenChat={openChat} />}
       {tab === "sessions" && <MySessionsPage onOpenChat={openChat} />}
       {tab === "chat" && <ChatPage partnerId={chatPartnerId} />}
+      {tab === "ai" && <AiCoachPage />}
       {tab === "billing" && <BillingPage />}
       {tab === "profile" && <ProfilePage />}
     </>

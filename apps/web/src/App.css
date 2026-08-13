@@ -535,6 +535,18 @@ form button[type="submit"]:disabled {
   cursor: not-allowed;
 }
 
+/* ---------- AI coach ---------- */
+.ai-usage-hint {
+  margin: 8px 0 0;
+  text-align: right;
+  color: #52625a;
+  font-size: 0.78rem;
+}
+
+.ai-coach-error {
+  margin: 8px 0 0;
+}
+
 /* ---------- Billing ---------- */
 .billing-current {
   display: flex;

@@ -4,6 +4,7 @@ import cors from "cors";
 import express from "express";
 import type { NextFunction, Request, Response } from "express";
 import { adminRouter } from "./admin/routes.js";
+import { aiRouter } from "./ai/routes.js";
 import { authRouter } from "./auth/routes.js";
 import { billingRouter, billingWebhookHandler } from "./billing/routes.js";
 import { chatRouter } from "./chat/routes.js";
@@ -38,6 +39,7 @@ app.use("/api/coaches", coachesRouter);
 app.use("/api/sessions", sessionsRouter);
 app.use("/api/chat", chatRouter);
 app.use("/api/billing", billingRouter);
+app.use("/api/ai", aiRouter);
 
 app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
   console.error(err);

@@ -44,6 +44,11 @@ enum SubscriptionStatus {
   TRIALING
 }
 
+enum AiMessageRole {
+  USER
+  ASSISTANT
+}
+
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
@@ -67,6 +72,7 @@ model User {
   refreshTokens       RefreshToken[]
   passwordResetTokens PasswordResetToken[]
   invoices            Invoice[]
+  aiMessages          AiMessage[]
 }
 
 /// Persisted, rotatable refresh token backing the JWT access-token flow.
@@ -220,4 +226,16 @@ model Invoice {
   createdAt       DateTime         @default(now())
 
   @@index([userId])
+}
+
+/// AI coach bilan suhbat tarixidagi bitta xabar (foydalanuvchidan yoki AI javobi).
+model AiMessage {
+  id        String        @id @default(cuid())
+  userId    String
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      AiMessageRole
+  content   String
+  createdAt DateTime      @default(now())
+
+  @@index([userId, createdAt])
 }

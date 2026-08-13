@@ -1,4 +1,6 @@
 import type {
+  AiMessageDto,
+  AiUsageDto,
   AuthResponse,
   AvailabilitySlotDto,
   ChatMessage,
@@ -157,4 +159,43 @@ export function checkout(plan: SubscriptionPlan): Promise<{ url: string | null; 
 
 export function cancelSubscription(): Promise<{ subscription: SubscriptionDto }> {
   return request("/billing/cancel", { method: "POST" });
+}
+
+export function fetchAiHistory(): Promise<{ messages: AiMessageDto[]; usage: AiUsageDto }> {
+  return request("/ai/messages");
+}
+
+/**
+ * AI coach javobini bo'lak-bo'lak (streaming) qabul qiladi — `request()`dagi kabi butun
+ * JSON javobni kutmasdan, har bir matn bo'lagi kelgan zahoti `onChunk` chaqiriladi.
+ */
+export async function sendAiMessage(content: string, onChunk: (chunk: string) => void): Promise<void> {
+  const headers = new Headers({ "Content-Type": "application/json" });
+  if (accessToken) {
+    headers.set("Authorization", `Bearer ${accessToken}`);
+  }
+
+  const res = await fetch(`${API_BASE}/ai/messages`, {
+    method: "POST",
+    headers,
+    credentials: "include",
+    body: JSON.stringify({ content }),
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.error ?? "AI javob berishda xatolik yuz berdi");
+  }
+  if (!res.body) {
+    onChunk(await res.text());
+    return;
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    onChunk(decoder.decode(value, { stream: true }));
+  }
 }

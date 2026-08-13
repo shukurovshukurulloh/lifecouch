@@ -100,6 +100,7 @@ export interface PlanDefinitionDto {
   currency: string;
   maxActiveGoals: number | null;
   coachBookingAllowed: boolean;
+  aiMessagesPerDay: number | null;
   features: string[];
 }
 
@@ -120,6 +121,22 @@ export interface InvoiceDto {
   currency: string;
   status: string;
   createdAt: string;
+}
+
+export type AiMessageRole = "USER" | "ASSISTANT";
+
+export interface AiMessageDto {
+  id: string;
+  role: AiMessageRole;
+  content: string;
+  createdAt: string;
+}
+
+export interface AiUsageDto {
+  /** null — cheklovsiz. */
+  limit: number | null;
+  used: number;
+  remaining: number | null;
 }
 
 // Qolgan request/response DTOlari sprint-sprint qo'shib boriladi.
