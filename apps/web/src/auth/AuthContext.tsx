@@ -1,5 +1,6 @@
 import type { PublicUser } from "@lifecouch/shared";
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
+import { useTranslation } from "../i18n/LocaleContext";
 import * as api from "../lib/api";
 import { setAccessToken } from "../lib/api";
 
@@ -16,6 +17,7 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const { t } = useTranslation();
   const [user, setUser] = useState<PublicUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -43,10 +45,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setAccessToken(session.accessToken);
       setUser(session.user);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Kirishda xatolik yuz berdi");
+      setError(err instanceof Error ? err.message : t("auth.errorLogin"));
       throw err;
     }
-  }, []);
+  }, [t]);
 
   const register = useCallback(async (email: string, password: string, name: string) => {
     setError(null);
@@ -55,10 +57,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setAccessToken(session.accessToken);
       setUser(session.user);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Ro'yxatdan o'tishda xatolik yuz berdi");
+      setError(err instanceof Error ? err.message : t("auth.errorRegister"));
       throw err;
     }
-  }, []);
+  }, [t]);
 
   const logout = useCallback(async () => {
     await api.logout().catch(() => undefined);

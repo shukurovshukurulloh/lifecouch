@@ -31,6 +31,12 @@ enum SessionStatus {
   COMPLETED
 }
 
+enum CoachStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 enum SubscriptionPlan {
   FREE
   PRO
@@ -101,20 +107,26 @@ model PasswordResetToken {
   @@index([userId])
 }
 
-/// Public profile + rate card for a User with role = COACH.
+/// Public profile + rate card for a User applying to (or approved as) a COACH.
+/// `status` gates both public visibility and the COACH role grant — see admin/routes.ts.
 model Coach {
-  id         String   @id @default(cuid())
-  userId     String   @unique
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  specialty  String
-  priceCents Int
-  currency   String   @default("USD")
-  ratingAvg  Float?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id             String      @id @default(cuid())
+  userId         String      @unique
+  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  specialty      String
+  priceCents     Int
+  currency       String      @default("USD")
+  ratingAvg      Float?
+  status         CoachStatus @default(PENDING)
+  rejectionNote  String?
+  reviewedAt     DateTime?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
 
   sessions          Session[]
   availabilitySlots AvailabilitySlot[]
+
+  @@index([status])
 }
 
 /// An open time slot a coach publishes; becomes booked when a Session claims it.

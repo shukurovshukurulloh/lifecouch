@@ -1,15 +1,22 @@
 import type {
+  AdminCoachApplication,
+  AdminStats,
+  AdminSubscription,
+  AdminUser,
   AiMessageDto,
   AiUsageDto,
   AuthResponse,
   AvailabilitySlotDto,
   ChatMessage,
+  DashboardSummary,
   GoalWithHabits,
   HabitProgress,
   InvoiceDto,
+  MyCoachProfile,
   PlanDefinitionDto,
   PublicCoach,
   PublicUser,
+  Role,
   SessionBooking,
   SubscriptionDto,
   SubscriptionPlan,
@@ -113,8 +120,12 @@ export function listCoaches(): Promise<{ coaches: PublicCoach[] }> {
   return request("/coaches");
 }
 
+export function fetchMyCoachProfile(): Promise<{ coach: MyCoachProfile | null }> {
+  return request("/coaches/me");
+}
+
 export function becomeCoach(input: { specialty: string; priceCents: number; currency?: string }): Promise<{
-  coach: PublicCoach;
+  coach: MyCoachProfile;
 }> {
   return request("/coaches/me", { method: "POST", body: JSON.stringify(input) });
 }
@@ -198,4 +209,59 @@ export async function sendAiMessage(content: string, onChunk: (chunk: string) =>
     if (done) break;
     onChunk(decoder.decode(value, { stream: true }));
   }
+}
+
+// ---------- Dashboard ----------
+
+export function fetchDashboardSummary(): Promise<{ summary: DashboardSummary }> {
+  return request("/dashboard/summary");
+}
+
+// ---------- Admin ----------
+
+export function fetchAdminStats(): Promise<AdminStats> {
+  return request("/admin/stats");
+}
+
+export function fetchPendingCoaches(): Promise<{ coaches: AdminCoachApplication[] }> {
+  return request("/admin/coaches/pending");
+}
+
+export function approveCoach(coachId: string): Promise<{ coach: AdminCoachApplication }> {
+  return request(`/admin/coaches/${coachId}/approve`, { method: "POST" });
+}
+
+export function rejectCoach(coachId: string, note?: string): Promise<{ coach: AdminCoachApplication }> {
+  return request(`/admin/coaches/${coachId}/reject`, { method: "POST", body: JSON.stringify({ note }) });
+}
+
+export function fetchAdminUsers(input: { search?: string; page?: number; pageSize?: number } = {}): Promise<{
+  users: AdminUser[];
+  total: number;
+  page: number;
+  pageSize: number;
+}> {
+  const params = new URLSearchParams();
+  if (input.search) params.set("search", input.search);
+  if (input.page) params.set("page", String(input.page));
+  if (input.pageSize) params.set("pageSize", String(input.pageSize));
+  const qs = params.toString();
+  return request(`/admin/users${qs ? `?${qs}` : ""}`);
+}
+
+export function updateUserRole(userId: string, role: Role): Promise<{ user: AdminUser }> {
+  return request(`/admin/users/${userId}/role`, { method: "PATCH", body: JSON.stringify({ role }) });
+}
+
+export function fetchAdminSubscriptions(input: { page?: number; pageSize?: number } = {}): Promise<{
+  subscriptions: AdminSubscription[];
+  total: number;
+  page: number;
+  pageSize: number;
+}> {
+  const params = new URLSearchParams();
+  if (input.page) params.set("page", String(input.page));
+  if (input.pageSize) params.set("pageSize", String(input.pageSize));
+  const qs = params.toString();
+  return request(`/admin/subscriptions${qs ? `?${qs}` : ""}`);
 }

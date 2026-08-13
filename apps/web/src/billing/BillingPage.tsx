@@ -1,27 +1,32 @@
 import type { InvoiceDto, PlanDefinitionDto, SubscriptionDto, SubscriptionPlan } from "@lifecouch/shared";
 import { useEffect, useState } from "react";
+import { EmptyState, LoadingState } from "../common/Feedback";
+import { useTranslation, type TranslationKey } from "../i18n/LocaleContext";
 import * as api from "../lib/api";
 
-const PLAN_LABEL: Record<SubscriptionPlan, string> = { FREE: "Free", PRO: "Pro", PREMIUM: "Premium" };
-const STATUS_LABEL: Record<SubscriptionDto["status"], string> = {
-  ACTIVE: "Faol",
-  TRIALING: "Sinov muddatida",
-  PAST_DUE: "To'lov muddati o'tgan",
-  CANCELED: "Bekor qilingan",
+const STATUS_KEY: Record<SubscriptionDto["status"], TranslationKey> = {
+  ACTIVE: "status.active",
+  TRIALING: "status.trialing",
+  PAST_DUE: "status.pastDue",
+  CANCELED: "status.cancelled",
 };
 
-function formatPrice(cents: number, currency: string): string {
-  if (cents === 0) return "Bepul";
-  return `${(cents / 100).toFixed(0)} ${currency}/oy`;
-}
+// Reja nomlari brend nomi — tarjima qilinmaydi, faqat chiroyli formatda ko'rsatiladi.
+const PLAN_LABEL: Record<SubscriptionPlan, string> = { FREE: "Free", PRO: "Pro", PREMIUM: "Premium" };
 
 export function BillingPage() {
+  const { t, locale } = useTranslation();
   const [plans, setPlans] = useState<PlanDefinitionDto[]>([]);
   const [subscription, setSubscription] = useState<SubscriptionDto | null>(null);
   const [invoices, setInvoices] = useState<InvoiceDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyPlan, setBusyPlan] = useState<SubscriptionPlan | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+
+  function formatPrice(cents: number, currency: string): string {
+    if (cents === 0) return t("billing.free");
+    return t("billing.perMonth", { price: (cents / 100).toFixed(0), currency });
+  }
 
   async function load() {
     const [billing, invoiceData] = await Promise.all([api.fetchBillingPlans(), api.fetchInvoices()]);
@@ -48,9 +53,9 @@ export function BillingPage() {
       setSubscription(updated);
       const { invoices: fresh } = await api.fetchInvoices();
       setInvoices(fresh);
-      setMessage(`${PLAN_LABEL[plan]} rejaga muvaffaqiyatli o'tdingiz (sinov rejimi — Stripe ulanmagan).`);
+      setMessage(t("billing.upgradeSuccess", { plan: PLAN_LABEL[plan] }));
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "To'lovni boshlab bo'lmadi");
+      setMessage(err instanceof Error ? err.message : t("billing.upgradeError"));
     } finally {
       setBusyPlan(null);
     }
@@ -62,26 +67,29 @@ export function BillingPage() {
     try {
       const { subscription: updated } = await api.cancelSubscription();
       setSubscription(updated);
-      setMessage("Obuna bekor qilindi, Free rejaga qaytdingiz.");
+      setMessage(t("billing.cancelSuccess"));
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Bekor qilib bo'lmadi");
+      setMessage(err instanceof Error ? err.message : t("billing.cancelError"));
     } finally {
       setBusyPlan(null);
     }
   }
 
-  if (loading) return <p className="loading">Yuklanmoqda...</p>;
+  if (loading) return <LoadingState />;
 
   return (
     <div className="billing-page">
       {subscription && (
         <div className="billing-current">
           <span>
-            Joriy reja: <strong>{PLAN_LABEL[subscription.plan]}</strong> &middot; {STATUS_LABEL[subscription.status]}
+            {t("billing.currentPlan", {
+              plan: PLAN_LABEL[subscription.plan],
+              status: t(STATUS_KEY[subscription.status]),
+            })}
           </span>
           {subscription.plan !== "FREE" && subscription.status !== "CANCELED" && (
             <button type="button" className="link-danger" disabled={busyPlan !== null} onClick={() => void handleCancel()}>
-              Obunani bekor qilish
+              {t("billing.cancelSubscription")}
             </button>
           )}
         </div>
@@ -103,15 +111,15 @@ export function BillingPage() {
               </ul>
               {isCurrent ? (
                 <button type="button" disabled>
-                  Joriy reja
+                  {t("billing.current")}
                 </button>
               ) : plan.priceCents === 0 ? (
                 <button type="button" disabled={busyPlan !== null} onClick={() => void handleCancel()}>
-                  Free'ga o'tish
+                  {t("billing.switchToFree")}
                 </button>
               ) : (
                 <button type="button" disabled={busyPlan !== null} onClick={() => void handleUpgrade(plan.id)}>
-                  {busyPlan === plan.id ? "Yuklanmoqda..." : `${plan.name}'ga o'tish`}
+                  {busyPlan === plan.id ? t("billing.loadingShort") : t("billing.switchTo", { plan: plan.name })}
                 </button>
               )}
             </div>
@@ -119,15 +127,15 @@ export function BillingPage() {
         })}
       </div>
 
-      <h3>To'lovlar tarixi</h3>
+      <h3>{t("billing.history")}</h3>
       {invoices.length === 0 ? (
-        <p className="empty-state">Hali to'lov qilinmagan.</p>
+        <EmptyState>{t("billing.noInvoices")}</EmptyState>
       ) : (
         <div className="invoice-list">
           {invoices.map((invoice) => (
             <div key={invoice.id} className="invoice-row">
-              <span>{new Date(invoice.createdAt).toLocaleDateString("uz-UZ")}</span>
-              <span>{PLAN_LABEL[invoice.plan]}</span>
+              <span>{new Date(invoice.createdAt).toLocaleDateString(locale)}</span>
+              <span>{invoice.plan}</span>
               <span>
                 {(invoice.amountCents / 100).toFixed(2)} {invoice.currency}
               </span>

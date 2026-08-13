@@ -27,3 +27,15 @@ export function toPublicCoach(
     ratingAvg: coach.ratingAvg,
   };
 }
+
+/** Foydalanuvchining o'z coach arizasi/profilini ko'rishi uchun — holat (status) bilan birga. */
+export interface MyCoachProfile extends PublicCoach {
+  status: Coach["status"];
+  rejectionNote: string | null;
+}
+
+export function toMyCoachProfile(
+  coach: Coach & { user: { name: string; avatarUrl: string | null; bio: string | null } },
+): MyCoachProfile {
+  return { ...toPublicCoach(coach), status: coach.status, rejectionNote: coach.rejectionNote };
+}

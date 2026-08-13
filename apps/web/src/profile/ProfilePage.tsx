@@ -1,14 +1,26 @@
-import { useState, type FormEvent } from "react";
+import type { MyCoachProfile } from "@lifecouch/shared";
+import { useEffect, useState, type FormEvent } from "react";
 import { useAuth } from "../auth/AuthContext";
-import { becomeCoach, updateProfile } from "../lib/api";
+import { useTranslation, type TranslationKey } from "../i18n/LocaleContext";
+import { becomeCoach, fetchMyCoachProfile, updateProfile } from "../lib/api";
 
 export function ProfilePage() {
+  const { t } = useTranslation();
   const { user, logout, refreshProfile } = useAuth();
   const [name, setName] = useState(user?.name ?? "");
   const [bio, setBio] = useState(user?.bio ?? "");
   const [focusArea, setFocusArea] = useState(user?.focusArea ?? "");
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [coachProfile, setCoachProfile] = useState<MyCoachProfile | null>(null);
+
+  useEffect(() => {
+    if (user?.role === "USER") {
+      fetchMyCoachProfile()
+        .then(({ coach }) => setCoachProfile(coach))
+        .catch(() => undefined);
+    }
+  }, [user?.role]);
 
   if (!user) {
     return null;
@@ -21,9 +33,9 @@ export function ProfilePage() {
     try {
       await updateProfile({ name, bio, focusArea });
       await refreshProfile();
-      setMessage("Profil yangilandi");
+      setMessage(t("profile.saved"));
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Xatolik yuz berdi");
+      setMessage(err instanceof Error ? err.message : t("profile.errorGeneric"));
     } finally {
       setSaving(false);
     }
@@ -31,43 +43,59 @@ export function ProfilePage() {
 
   return (
     <div className="profile-card">
-      <h2>Salom, {user.name}</h2>
+      <h2>{t("profile.greeting", { name: user.name })}</h2>
       <p className="profile-meta">
-        {user.email} &middot; {user.role}
+        {user.email} &middot; {t(`role.${user.role}` as TranslationKey)}
       </p>
       <form onSubmit={handleSubmit}>
         <label>
-          Ism
+          {t("profile.name")}
           <input value={name} onChange={(e) => setName(e.target.value)} required />
         </label>
         <label>
-          Bio
+          {t("profile.bio")}
           <textarea value={bio ?? ""} onChange={(e) => setBio(e.target.value)} maxLength={500} rows={3} />
         </label>
         <label>
-          Maqsad sohasi
+          {t("profile.focusArea")}
           <input
             value={focusArea ?? ""}
             onChange={(e) => setFocusArea(e.target.value)}
-            placeholder="masalan: sog'liq, karyera, moliya"
+            placeholder={t("profile.focusAreaPlaceholder")}
             maxLength={80}
           />
         </label>
         {message && <p className="profile-message">{message}</p>}
         <button type="submit" disabled={saving}>
-          Saqlash
+          {t("profile.save")}
         </button>
       </form>
-      {user.role === "USER" && <BecomeCoachSection onDone={() => void refreshProfile()} />}
+
+      {user.role === "USER" && (
+        <CoachApplicationSection
+          coachProfile={coachProfile}
+          onApplied={(coach) => {
+            setCoachProfile(coach);
+            void refreshProfile();
+          }}
+        />
+      )}
 
       <button type="button" className="logout" onClick={() => void logout()}>
-        Chiqish
+        {t("profile.logout")}
       </button>
     </div>
   );
 }
 
-function BecomeCoachSection({ onDone }: { onDone: () => void }) {
+function CoachApplicationSection({
+  coachProfile,
+  onApplied,
+}: {
+  coachProfile: MyCoachProfile | null;
+  onApplied: (coach: MyCoachProfile) => void;
+}) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [specialty, setSpecialty] = useState("");
   const [price, setPrice] = useState("");
@@ -79,31 +107,60 @@ function BecomeCoachSection({ onDone }: { onDone: () => void }) {
     setSubmitting(true);
     setError(null);
     try {
-      await becomeCoach({ specialty, priceCents: Math.round(Number(price) * 100) });
-      onDone();
+      const { coach } = await becomeCoach({ specialty, priceCents: Math.round(Number(price) * 100) });
+      onApplied(coach);
+      setOpen(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Xatolik yuz berdi");
+      setError(err instanceof Error ? err.message : t("profile.errorGeneric"));
     } finally {
       setSubmitting(false);
     }
   }
 
+  if (coachProfile?.status === "PENDING") {
+    return (
+      <div className="coach-status-notice">
+        <span className="status-badge status-pending coach-status-badge">{t("status.coachPending")}</span>
+        <p>{t("becomeCoach.pendingNotice")}</p>
+      </div>
+    );
+  }
+
+  if (coachProfile?.status === "APPROVED") {
+    return (
+      <div className="coach-status-notice">
+        <span className="status-badge status-approved coach-status-badge">{t("status.coachApproved")}</span>
+        <p>{t("becomeCoach.approvedNotice")}</p>
+      </div>
+    );
+  }
+
+  const wasRejected = coachProfile?.status === "REJECTED";
+
   if (!open) {
     return (
-      <button type="button" className="link-quiet become-coach-toggle" onClick={() => setOpen(true)}>
-        Coach bo'lishni xohlaysizmi?
-      </button>
+      <div className="coach-status-notice">
+        {wasRejected && (
+          <>
+            <span className="status-badge status-rejected coach-status-badge">{t("status.coachRejected")}</span>
+            <p>{t("becomeCoach.rejectedNotice")}</p>
+          </>
+        )}
+        <button type="button" className="link-quiet become-coach-toggle" onClick={() => setOpen(true)}>
+          {wasRejected ? t("becomeCoach.reapply") : t("becomeCoach.prompt")}
+        </button>
+      </div>
     );
   }
 
   return (
     <form className="become-coach-form" onSubmit={handleSubmit}>
       <label>
-        Mutaxassislik
+        {t("becomeCoach.specialty")}
         <input value={specialty} onChange={(e) => setSpecialty(e.target.value)} required />
       </label>
       <label>
-        Bir sessiya narxi (USD)
+        {t("becomeCoach.price")}
         <input
           type="number"
           min="0"
@@ -115,7 +172,7 @@ function BecomeCoachSection({ onDone }: { onDone: () => void }) {
       </label>
       {error && <p className="auth-error">{error}</p>}
       <button type="submit" disabled={submitting}>
-        Coach sifatida ro'yxatdan o'tish
+        {t("becomeCoach.submit")}
       </button>
     </form>
   );

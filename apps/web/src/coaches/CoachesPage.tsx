@@ -1,8 +1,11 @@
 import type { AvailabilitySlotDto, PublicCoach } from "@lifecouch/shared";
 import { useEffect, useState } from "react";
+import { EmptyState, ErrorBanner, LoadingState } from "../common/Feedback";
+import { useTranslation } from "../i18n/LocaleContext";
 import * as api from "../lib/api";
 
 export function CoachesPage({ onOpenChat }: { onOpenChat: (partnerId: string) => void }) {
+  const { t, locale } = useTranslation();
   const [coaches, setCoaches] = useState<PublicCoach[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -11,12 +14,21 @@ export function CoachesPage({ onOpenChat }: { onOpenChat: (partnerId: string) =>
   const [booking, setBooking] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
-  useEffect(() => {
+  function load() {
+    setLoading(true);
     api
       .listCoaches()
-      .then(({ coaches: fetched }) => setCoaches(fetched))
-      .catch((err) => setError(err instanceof Error ? err.message : "Coachlarni yuklab bo'lmadi"))
+      .then(({ coaches: fetched }) => {
+        setCoaches(fetched);
+        setError(null);
+      })
+      .catch((err) => setError(err instanceof Error ? err.message : t("coaches.errorLoad")))
       .finally(() => setLoading(false));
+  }
+
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function toggleSlots(coachId: string) {
@@ -35,23 +47,21 @@ export function CoachesPage({ onOpenChat }: { onOpenChat: (partnerId: string) =>
     try {
       await api.bookSession(slotId);
       setSlots((prev) => prev.filter((s) => s.id !== slotId));
-      setMessage("Sessiya band qilindi — \"Sessiyalar\" bo'limida ko'rishingiz mumkin.");
+      setMessage(t("coaches.booked"));
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Band qilib bo'lmadi");
+      setMessage(err instanceof Error ? err.message : t("coaches.bookError"));
     } finally {
       setBooking(null);
     }
   }
 
-  if (loading) return <p className="loading">Yuklanmoqda...</p>;
+  if (loading) return <LoadingState />;
 
   return (
     <div className="coaches-page">
-      {error && <p className="auth-error">{error}</p>}
+      {error && <ErrorBanner message={error} onRetry={load} />}
       {message && <p className="profile-message">{message}</p>}
-      {coaches.length === 0 && !error && (
-        <p className="empty-state">Hozircha coachlar yo'q. Profil bo'limidan o'zingiz coach bo'lib ko'ring.</p>
-      )}
+      {coaches.length === 0 && !error && <EmptyState>{t("coaches.empty")}</EmptyState>}
 
       <div className="coach-list">
         {coaches.map((coach) => (
@@ -68,16 +78,16 @@ export function CoachesPage({ onOpenChat }: { onOpenChat: (partnerId: string) =>
             {coach.bio && <p className="coach-bio">{coach.bio}</p>}
             <div className="coach-actions">
               <button type="button" onClick={() => void toggleSlots(coach.id)}>
-                {expandedCoachId === coach.id ? "Yashirish" : "Vaqtlarni ko'rish"}
+                {expandedCoachId === coach.id ? t("coaches.hideSlots") : t("coaches.showSlots")}
               </button>
               <button type="button" className="secondary" onClick={() => onOpenChat(coach.userId)}>
-                Xabar yozish
+                {t("coaches.sendMessage")}
               </button>
             </div>
 
             {expandedCoachId === coach.id && (
               <div className="slot-list">
-                {slots.length === 0 && <p className="empty-state">Bo'sh vaqt yo'q</p>}
+                {slots.length === 0 && <EmptyState>{t("coaches.noSlots")}</EmptyState>}
                 {slots.map((slot) => (
                   <button
                     key={slot.id}
@@ -86,7 +96,7 @@ export function CoachesPage({ onOpenChat }: { onOpenChat: (partnerId: string) =>
                     disabled={booking === slot.id}
                     onClick={() => void handleBook(slot.id)}
                   >
-                    {new Date(slot.startsAt).toLocaleString("uz-UZ", {
+                    {new Date(slot.startsAt).toLocaleString(locale, {
                       day: "2-digit",
                       month: "2-digit",
                       hour: "2-digit",

@@ -1,5 +1,6 @@
 import type { HabitProgress } from "@lifecouch/shared";
 import { useState } from "react";
+import { useTranslation } from "../i18n/LocaleContext";
 import * as api from "../lib/api";
 
 export function HabitRow({
@@ -11,6 +12,7 @@ export function HabitRow({
   onToggled: (streak: number) => void;
   onDeleted: () => void;
 }) {
+  const { t } = useTranslation();
   const [busy, setBusy] = useState(false);
   const todayCompleted = habit.last7Days.at(-1)?.completed ?? false;
 
@@ -37,14 +39,14 @@ export function HabitRow({
         onClick={() => void handleToggle()}
         disabled={busy}
         aria-pressed={todayCompleted}
-        title="Bugungi holatni belgilash"
+        title={t("habit.toggleTitle")}
       >
         {todayCompleted ? "✓" : ""}
       </button>
 
       <div className="habit-info">
         <span className="habit-title">{habit.title}</span>
-        <div className="habit-strip" aria-label="Oxirgi 7 kun">
+        <div className="habit-strip" aria-label={t("habit.last7Days")}>
           {habit.last7Days.map((day) => (
             <span key={day.date} className={`day-cell ${day.completed ? "filled" : ""}`} title={day.date} />
           ))}

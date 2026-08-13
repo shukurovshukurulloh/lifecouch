@@ -10,6 +10,7 @@ import { billingRouter, billingWebhookHandler } from "./billing/routes.js";
 import { chatRouter } from "./chat/routes.js";
 import { createChatServer } from "./chat/socket.js";
 import { coachesRouter } from "./coaches/routes.js";
+import { dashboardRouter } from "./dashboard/routes.js";
 import { env } from "./env.js";
 import { goalsRouter } from "./goals/routes.js";
 import { scheduleDailyReminders } from "./reminders/job.js";
@@ -34,6 +35,7 @@ app.get("/health", (_req, res) => {
 app.use("/api/auth", authRouter);
 app.use("/api/users", usersRouter);
 app.use("/api/admin", adminRouter);
+app.use("/api/dashboard", dashboardRouter);
 app.use("/api/goals", goalsRouter);
 app.use("/api/coaches", coachesRouter);
 app.use("/api/sessions", sessionsRouter);

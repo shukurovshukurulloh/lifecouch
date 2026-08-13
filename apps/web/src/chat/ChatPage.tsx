@@ -1,10 +1,13 @@
 import type { ChatMessage } from "@lifecouch/shared";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useAuth } from "../auth/AuthContext";
+import { EmptyState } from "../common/Feedback";
+import { useTranslation } from "../i18n/LocaleContext";
 import * as api from "../lib/api";
 import { connectSocket, disconnectSocket } from "../lib/socket";
 
 export function ChatPage({ partnerId }: { partnerId: string | null }) {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState("");
@@ -45,11 +48,7 @@ export function ChatPage({ partnerId }: { partnerId: string | null }) {
   }
 
   if (!partnerId) {
-    return (
-      <p className="empty-state">
-        Suhbatdosh tanlanmagan — Coachlar yoki Sessiyalar bo'limidan "Xabar" tugmasini bosing.
-      </p>
-    );
+    return <EmptyState>{t("chat.noPartner")}</EmptyState>;
   }
 
   return (
@@ -62,9 +61,9 @@ export function ChatPage({ partnerId }: { partnerId: string | null }) {
         ))}
       </div>
       <form className="chat-input" onSubmit={handleSend}>
-        <input value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="Xabar yozing..." />
+        <input value={draft} onChange={(e) => setDraft(e.target.value)} placeholder={t("chat.placeholder")} />
         <button type="submit" disabled={!draft.trim()}>
-          Yuborish
+          {t("chat.send")}
         </button>
       </form>
     </div>

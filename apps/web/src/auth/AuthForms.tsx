@@ -1,7 +1,9 @@
 import { useState, type FormEvent } from "react";
+import { useTranslation } from "../i18n/LocaleContext";
 import { useAuth } from "./AuthContext";
 
 export function AuthForms() {
+  const { t } = useTranslation();
   const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -29,29 +31,29 @@ export function AuthForms() {
     <div className="auth-card">
       <div className="auth-tabs">
         <button type="button" className={mode === "login" ? "active" : ""} onClick={() => setMode("login")}>
-          Kirish
+          {t("auth.loginTab")}
         </button>
         <button
           type="button"
           className={mode === "register" ? "active" : ""}
           onClick={() => setMode("register")}
         >
-          Ro'yxatdan o'tish
+          {t("auth.registerTab")}
         </button>
       </div>
       <form onSubmit={handleSubmit}>
         {mode === "register" && (
           <label>
-            Ism
+            {t("auth.name")}
             <input value={name} onChange={(e) => setName(e.target.value)} required />
           </label>
         )}
         <label>
-          Email
+          {t("auth.email")}
           <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
         </label>
         <label>
-          Parol
+          {t("auth.password")}
           <input
             type="password"
             value={password}
@@ -62,7 +64,7 @@ export function AuthForms() {
         </label>
         {error && <p className="auth-error">{error}</p>}
         <button type="submit" disabled={submitting}>
-          {mode === "login" ? "Kirish" : "Ro'yxatdan o'tish"}
+          {mode === "login" ? t("auth.submitLogin") : t("auth.submitRegister")}
         </button>
       </form>
     </div>

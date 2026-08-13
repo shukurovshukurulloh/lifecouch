@@ -59,6 +59,13 @@ export interface PublicCoach {
   ratingAvg: number | null;
 }
 
+export type CoachStatus = "PENDING" | "APPROVED" | "REJECTED";
+
+export interface MyCoachProfile extends PublicCoach {
+  status: CoachStatus;
+  rejectionNote: string | null;
+}
+
 export interface AvailabilitySlotDto {
   id: string;
   coachId: string;
@@ -137,6 +144,68 @@ export interface AiUsageDto {
   limit: number | null;
   used: number;
   remaining: number | null;
+}
+
+// ---------- Sprint 06: dashboard va admin ----------
+
+export interface DashboardSummary {
+  activeGoals: number;
+  completedGoals: number;
+  totalHabits: number;
+  bestStreak: number;
+  checkInsThisWeek: number;
+  upcomingSessions: number;
+  upcomingSessionsAsCoach: number;
+  subscriptionPlan: SubscriptionPlan;
+}
+
+export interface AdminStats {
+  totalUsers: number;
+  totalCoaches: number;
+  pendingCoaches: number;
+  totalSessions: number;
+  activeSubscriptions: number;
+  totalRevenueCents: number;
+}
+
+export interface AdminCoachApplication {
+  id: string;
+  userId: string;
+  name: string;
+  email: string;
+  specialty: string;
+  priceCents: number;
+  currency: string;
+  status: CoachStatus;
+  rejectionNote: string | null;
+  createdAt: string;
+}
+
+export interface AdminUser {
+  id: string;
+  name: string;
+  email: string;
+  role: Role;
+  createdAt: string;
+  coachStatus: CoachStatus | null;
+  subscriptionPlan: SubscriptionPlan | null;
+}
+
+export interface AdminSubscription {
+  id: string;
+  userId: string;
+  name: string;
+  email: string;
+  plan: SubscriptionPlan;
+  status: SubscriptionStatus;
+  currentPeriodEnd: string | null;
+  createdAt: string;
+}
+
+export interface Paginated<T> {
+  total: number;
+  page: number;
+  pageSize: number;
 }
 
 // Qolgan request/response DTOlari sprint-sprint qo'shib boriladi.

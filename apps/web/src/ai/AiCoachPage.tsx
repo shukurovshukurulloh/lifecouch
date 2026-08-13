@@ -1,5 +1,7 @@
 import type { AiMessageDto, AiUsageDto } from "@lifecouch/shared";
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { EmptyState, LoadingState } from "../common/Feedback";
+import { useTranslation } from "../i18n/LocaleContext";
 import * as api from "../lib/api";
 
 interface DisplayMessage {
@@ -8,13 +10,8 @@ interface DisplayMessage {
   content: string;
 }
 
-function usageLabel(usage: AiUsageDto | null): string {
-  if (!usage) return "";
-  if (usage.limit === null) return "Bugun cheksiz AI xabar yubora olasiz";
-  return `Bugun qolgan AI xabarlar: ${usage.remaining} / ${usage.limit}`;
-}
-
 export function AiCoachPage() {
+  const { t } = useTranslation();
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
   const [usage, setUsage] = useState<AiUsageDto | null>(null);
   const [draft, setDraft] = useState("");
@@ -22,6 +19,12 @@ export function AiCoachPage() {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
+
+  function usageLabel(currentUsage: AiUsageDto | null): string {
+    if (!currentUsage) return "";
+    if (currentUsage.limit === null) return t("ai.unlimited");
+    return t("ai.remaining", { remaining: currentUsage.remaining ?? 0, limit: currentUsage.limit });
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -63,23 +66,18 @@ export function AiCoachPage() {
       setUsage(freshUsage);
     } catch (err) {
       setMessages((prev) => prev.filter((m) => m.id !== assistantId));
-      setError(err instanceof Error ? err.message : "AI javob berishda xatolik yuz berdi");
+      setError(err instanceof Error ? err.message : t("ai.errorGeneric"));
     } finally {
       setSending(false);
     }
   }
 
-  if (loading) return <p className="loading">Yuklanmoqda...</p>;
+  if (loading) return <LoadingState />;
 
   return (
     <div className="chat-page ai-coach-page">
       <div className="chat-messages" ref={listRef}>
-        {messages.length === 0 && (
-          <p className="empty-state">
-            AI coach'ingizga maqsadlaringiz yoki odatlaringiz haqida savol bering — u progressingizga qarab
-            maslahat beradi.
-          </p>
-        )}
+        {messages.length === 0 && <EmptyState>{t("ai.empty")}</EmptyState>}
         {messages.map((message) => (
           <div key={message.id} className={`chat-bubble ${message.role === "USER" ? "mine" : ""}`}>
             {message.content || (message.role === "ASSISTANT" && sending ? "..." : "")}
@@ -92,11 +90,11 @@ export function AiCoachPage() {
         <input
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          placeholder="AI coach'dan maslahat so'rang..."
+          placeholder={t("ai.placeholder")}
           disabled={sending}
         />
         <button type="submit" disabled={!draft.trim() || sending}>
-          {sending ? "Yuborilmoqda..." : "Yuborish"}
+          {sending ? t("ai.sending") : t("ai.send")}
         </button>
       </form>
     </div>

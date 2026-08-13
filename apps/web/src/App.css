@@ -1,11 +1,71 @@
 :root {
   color-scheme: light dark;
+
+  --bg: #f4f5f2;
+  --surface: #ffffff;
+  --surface-muted: #f4f5f2;
+  --border: #dde0d8;
+  --text: #1a2420;
+  --text-muted: #52625a;
+  --accent: #2f6b54;
+  --accent-contrast: #ffffff;
+  --danger: #b3392c;
+  --danger-bg: #f3ded9;
+  --danger-text: #b3392c;
+  --success-bg: #e3eee7;
+  --success-text: #2f6b54;
+  --track: #e3e6de;
+  --shadow: 0 1px 2px rgba(20, 30, 25, 0.06);
+}
+
+/* Tizim mavzusiga qarab (ThemeContext "system" holatida — data-theme atributi yo'q bo'lganda) */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #101512;
+    --surface: #1a2320;
+    --surface-muted: #1f2925;
+    --border: #2c3934;
+    --text: #e7ece9;
+    --text-muted: #94a69c;
+    --accent: #45a67f;
+    --accent-contrast: #06110c;
+    --danger: #e0685a;
+    --danger-bg: rgba(224, 104, 90, 0.16);
+    --danger-text: #ff9a8a;
+    --success-bg: rgba(69, 166, 127, 0.16);
+    --success-text: #7ee2b8;
+    --track: #2c3934;
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  }
+}
+
+/* ThemeToggle orqali qo'lda tanlangan mavzu — tizim sozlamasidan ustun */
+:root[data-theme="dark"] {
+  --bg: #101512;
+  --surface: #1a2320;
+  --surface-muted: #1f2925;
+  --border: #2c3934;
+  --text: #e7ece9;
+  --text-muted: #94a69c;
+  --accent: #45a67f;
+  --accent-contrast: #06110c;
+  --danger: #e0685a;
+  --danger-bg: rgba(224, 104, 90, 0.16);
+  --danger-text: #ff9a8a;
+  --success-bg: rgba(69, 166, 127, 0.16);
+  --success-text: #7ee2b8;
+  --track: #2c3934;
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+* {
+  box-sizing: border-box;
 }
 
 body {
   margin: 0;
-  background: #f4f5f2;
-  color: #1a2420;
+  background: var(--bg);
+  color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
@@ -15,9 +75,29 @@ body {
   padding: 48px 20px;
 }
 
+.page.page-wide {
+  max-width: 900px;
+}
+
+.app-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.app-header-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
 .brand {
   font-size: 1.5rem;
-  margin: 0 0 24px;
+  margin: 0;
 }
 
 .tabs {
@@ -29,28 +109,107 @@ body {
 
 .tabs button {
   padding: 8px 16px;
-  border: 1px solid #dde0d8;
-  background: #fff;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
   border-radius: 999px;
   cursor: pointer;
   font: inherit;
 }
 
 .tabs button.active {
-  background: #2f6b54;
-  color: #fff;
-  border-color: #2f6b54;
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border-color: var(--accent);
 }
 
 .loading {
   text-align: center;
-  color: #52625a;
+  color: var(--text-muted);
+}
+
+.spinner {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  margin-right: 8px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  vertical-align: -0.15em;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.error-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--danger-bg);
+  color: var(--danger-text);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 0.85rem;
+  margin-bottom: 12px;
+}
+
+.error-banner button {
+  flex: none;
+  background: none;
+  border: 1px solid currentColor;
+  color: inherit;
+  border-radius: 6px;
+  padding: 4px 10px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.78rem;
+}
+
+/* ---------- Til / mavzu almashtirgichlar ---------- */
+.language-switcher,
+.theme-toggle {
+  display: flex;
+  gap: 2px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 2px;
+  background: var(--surface);
+}
+
+.language-switcher button,
+.theme-toggle button {
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  padding: 5px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.75rem;
+  line-height: 1;
+}
+
+.theme-toggle button {
+  padding: 5px 9px;
+  font-size: 0.9rem;
+}
+
+.language-switcher button.active,
+.theme-toggle button.active {
+  background: var(--accent);
+  color: var(--accent-contrast);
 }
 
 .auth-card,
 .profile-card {
-  background: #fff;
-  border: 1px solid #dde0d8;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 10px;
   padding: 24px;
   max-width: 420px;
@@ -66,17 +225,18 @@ body {
 .auth-tabs button {
   flex: 1;
   padding: 8px;
-  border: 1px solid #dde0d8;
-  background: #f4f5f2;
+  border: 1px solid var(--border);
+  background: var(--surface-muted);
+  color: var(--text);
   border-radius: 6px;
   cursor: pointer;
   font: inherit;
 }
 
 .auth-tabs button.active {
-  background: #2f6b54;
-  color: #fff;
-  border-color: #2f6b54;
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border-color: var(--accent);
 }
 
 form label {
@@ -91,7 +251,9 @@ form textarea {
   width: 100%;
   margin-top: 4px;
   padding: 8px;
-  border: 1px solid #dde0d8;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
   border-radius: 6px;
   font: inherit;
   box-sizing: border-box;
@@ -100,8 +262,8 @@ form textarea {
 form button[type="submit"] {
   width: 100%;
   padding: 10px;
-  background: #2f6b54;
-  color: #fff;
+  background: var(--accent);
+  color: var(--accent-contrast);
   border: none;
   border-radius: 6px;
   cursor: pointer;
@@ -115,17 +277,17 @@ form button[type="submit"]:disabled {
 }
 
 .auth-error {
-  color: #b3392c;
+  color: var(--danger);
   font-size: 0.85rem;
 }
 
 .profile-message {
-  color: #2f6b54;
+  color: var(--accent);
   font-size: 0.85rem;
 }
 
 .profile-meta {
-  color: #52625a;
+  color: var(--text-muted);
   margin-top: -12px;
   margin-bottom: 20px;
 }
@@ -135,7 +297,8 @@ form button[type="submit"]:disabled {
   width: 100%;
   padding: 10px;
   background: transparent;
-  border: 1px solid #dde0d8;
+  border: 1px solid var(--border);
+  color: var(--text);
   border-radius: 6px;
   cursor: pointer;
   font: inherit;
@@ -143,7 +306,7 @@ form button[type="submit"]:disabled {
 
 /* ---------- Goals & habits ---------- */
 .empty-state {
-  color: #52625a;
+  color: var(--text-muted);
   text-align: center;
   padding: 24px 0;
 }
@@ -161,7 +324,9 @@ form button[type="submit"]:disabled {
   width: auto;
   margin-top: 0;
   padding: 10px;
-  border: 1px solid #dde0d8;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
   border-radius: 6px;
   font: inherit;
 }
@@ -169,8 +334,8 @@ form button[type="submit"]:disabled {
 .goal-create button,
 .habit-create button {
   padding: 0 16px;
-  background: #2f6b54;
-  color: #fff;
+  background: var(--accent);
+  color: var(--accent-contrast);
   border: none;
   border-radius: 6px;
   cursor: pointer;
@@ -191,8 +356,8 @@ form button[type="submit"]:disabled {
 }
 
 .goal-card {
-  background: #fff;
-  border: 1px solid #dde0d8;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 10px;
   padding: 20px;
 }
@@ -212,7 +377,7 @@ form button[type="submit"]:disabled {
 .link-danger {
   background: none;
   border: none;
-  color: #b3392c;
+  color: var(--danger);
   cursor: pointer;
   font: inherit;
   font-size: 0.8rem;
@@ -237,17 +402,17 @@ form button[type="submit"]:disabled {
   height: 28px;
   flex: none;
   border-radius: 50%;
-  border: 2px solid #2f6b54;
-  background: #fff;
-  color: #2f6b54;
+  border: 2px solid var(--accent);
+  background: var(--surface);
+  color: var(--accent);
   cursor: pointer;
   font-weight: 700;
   line-height: 1;
 }
 
 .habit-check.done {
-  background: #2f6b54;
-  color: #fff;
+  background: var(--accent);
+  color: var(--accent-contrast);
 }
 
 .habit-info {
@@ -270,18 +435,18 @@ form button[type="submit"]:disabled {
   width: 14px;
   height: 14px;
   border-radius: 3px;
-  background: #e3e6de;
+  background: var(--track);
 }
 
 .day-cell.filled {
-  background: #2f6b54;
+  background: var(--accent);
 }
 
 .habit-streak {
   flex: none;
   font-variant-numeric: tabular-nums;
   font-size: 0.85rem;
-  color: #52625a;
+  color: var(--text-muted);
   min-width: 36px;
   text-align: right;
 }
@@ -293,7 +458,7 @@ form button[type="submit"]:disabled {
 .link-quiet {
   background: none;
   border: none;
-  color: #2f6b54;
+  color: var(--accent);
   cursor: pointer;
   font: inherit;
   font-size: 0.85rem;
@@ -309,8 +474,8 @@ form button[type="submit"]:disabled {
 }
 
 .coach-card {
-  background: #fff;
-  border: 1px solid #dde0d8;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 10px;
   padding: 20px;
 }
@@ -319,6 +484,8 @@ form button[type="submit"]:disabled {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .coach-card-header h3 {
@@ -328,24 +495,25 @@ form button[type="submit"]:disabled {
 
 .coach-specialty {
   margin: 0;
-  color: #52625a;
+  color: var(--text-muted);
   font-size: 0.85rem;
 }
 
 .coach-price {
   font-variant-numeric: tabular-nums;
   font-weight: 600;
-  color: #2f6b54;
+  color: var(--accent);
 }
 
 .coach-bio {
-  color: #52625a;
+  color: var(--text-muted);
   font-size: 0.9rem;
   margin: 10px 0;
 }
 
 .coach-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   margin-top: 12px;
 }
@@ -354,8 +522,8 @@ form button[type="submit"]:disabled {
   padding: 8px 14px;
   border: none;
   border-radius: 6px;
-  background: #2f6b54;
-  color: #fff;
+  background: var(--accent);
+  color: var(--accent-contrast);
   cursor: pointer;
   font: inherit;
   font-size: 0.85rem;
@@ -363,8 +531,8 @@ form button[type="submit"]:disabled {
 
 .coach-actions button.secondary {
   background: transparent;
-  border: 1px solid #dde0d8;
-  color: #1a2420;
+  border: 1px solid var(--border);
+  color: var(--text);
 }
 
 .slot-list {
@@ -376,10 +544,10 @@ form button[type="submit"]:disabled {
 
 .slot-chip {
   padding: 6px 12px;
-  border: 1px solid #2f6b54;
+  border: 1px solid var(--accent);
   border-radius: 999px;
-  background: #fff;
-  color: #2f6b54;
+  background: var(--surface);
+  color: var(--accent);
   cursor: pointer;
   font: inherit;
   font-size: 0.8rem;
@@ -397,9 +565,22 @@ form button[type="submit"]:disabled {
 }
 
 .become-coach-form {
-  border-top: 1px solid #dde0d8;
+  border-top: 1px solid var(--border);
   margin-top: 20px;
   padding-top: 16px;
+}
+
+.coach-status-notice {
+  border-top: 1px solid var(--border);
+  margin-top: 20px;
+  padding-top: 16px;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.coach-status-badge {
+  display: inline-block;
+  margin-bottom: 8px;
 }
 
 /* ---------- Sessions ---------- */
@@ -420,17 +601,18 @@ form button[type="submit"]:disabled {
 
 .session-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 12px;
-  background: #fff;
-  border: 1px solid #dde0d8;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 8px;
   padding: 12px 16px;
 }
 
 .session-info {
   flex: 1;
-  min-width: 0;
+  min-width: 140px;
   display: flex;
   flex-direction: column;
 }
@@ -441,7 +623,7 @@ form button[type="submit"]:disabled {
 }
 
 .session-time {
-  color: #52625a;
+  color: var(--text-muted);
   font-size: 0.8rem;
   font-variant-numeric: tabular-nums;
 }
@@ -450,31 +632,35 @@ form button[type="submit"]:disabled {
   font-size: 0.72rem;
   padding: 3px 8px;
   border-radius: 999px;
-  background: #e3e6de;
-  color: #52625a;
+  background: var(--track);
+  color: var(--text-muted);
   white-space: nowrap;
 }
 
-.status-badge.status-confirmed {
-  background: #e3eee7;
-  color: #2f6b54;
+.status-badge.status-confirmed,
+.status-badge.status-approved,
+.status-badge.status-active {
+  background: var(--success-bg);
+  color: var(--success-text);
 }
 
-.status-badge.status-cancelled {
-  background: #f3ded9;
-  color: #b3392c;
+.status-badge.status-cancelled,
+.status-badge.status-rejected,
+.status-badge.status-past_due {
+  background: var(--danger-bg);
+  color: var(--danger-text);
 }
 
 .video-link {
   font-size: 0.8rem;
-  color: #2f6b54;
+  color: var(--accent);
   text-decoration: underline;
 }
 
 /* ---------- Chat ---------- */
 .chat-page {
-  background: #fff;
-  border: 1px solid #dde0d8;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 10px;
   display: flex;
   flex-direction: column;
@@ -492,7 +678,7 @@ form button[type="submit"]:disabled {
 
 .chat-bubble {
   align-self: flex-start;
-  background: #f4f5f2;
+  background: var(--surface-muted);
   border-radius: 10px;
   padding: 8px 12px;
   max-width: 75%;
@@ -501,21 +687,23 @@ form button[type="submit"]:disabled {
 
 .chat-bubble.mine {
   align-self: flex-end;
-  background: #2f6b54;
-  color: #fff;
+  background: var(--accent);
+  color: var(--accent-contrast);
 }
 
 .chat-input {
   display: flex;
   gap: 8px;
   padding: 12px;
-  border-top: 1px solid #dde0d8;
+  border-top: 1px solid var(--border);
 }
 
 .chat-input input {
   flex: 1;
   padding: 10px;
-  border: 1px solid #dde0d8;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
   border-radius: 6px;
   font: inherit;
 }
@@ -524,8 +712,8 @@ form button[type="submit"]:disabled {
   padding: 0 16px;
   border: none;
   border-radius: 6px;
-  background: #2f6b54;
-  color: #fff;
+  background: var(--accent);
+  color: var(--accent-contrast);
   cursor: pointer;
   font: inherit;
 }
@@ -539,7 +727,7 @@ form button[type="submit"]:disabled {
 .ai-usage-hint {
   margin: 8px 0 0;
   text-align: right;
-  color: #52625a;
+  color: var(--text-muted);
   font-size: 0.78rem;
 }
 
@@ -550,10 +738,12 @@ form button[type="submit"]:disabled {
 /* ---------- Billing ---------- */
 .billing-current {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  background: #fff;
-  border: 1px solid #dde0d8;
+  gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 10px;
   padding: 14px 18px;
   margin-bottom: 20px;
@@ -568,8 +758,8 @@ form button[type="submit"]:disabled {
 }
 
 .plan-card {
-  background: #fff;
-  border: 1px solid #dde0d8;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 10px;
   padding: 20px;
   display: flex;
@@ -578,8 +768,8 @@ form button[type="submit"]:disabled {
 }
 
 .plan-card-active {
-  border-color: #2f6b54;
-  box-shadow: 0 0 0 1px #2f6b54;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
 }
 
 .plan-card h3 {
@@ -589,7 +779,7 @@ form button[type="submit"]:disabled {
 .plan-price {
   font-size: 1.1rem;
   font-weight: 600;
-  color: #2f6b54;
+  color: var(--accent);
   margin: 0;
 }
 
@@ -602,20 +792,20 @@ form button[type="submit"]:disabled {
   flex-direction: column;
   gap: 6px;
   font-size: 0.85rem;
-  color: #52625a;
+  color: var(--text-muted);
 }
 
 .plan-features li::before {
   content: "✓ ";
-  color: #2f6b54;
+  color: var(--accent);
 }
 
 .plan-card button {
   padding: 10px;
   border: none;
   border-radius: 6px;
-  background: #2f6b54;
-  color: #fff;
+  background: var(--accent);
+  color: var(--accent-contrast);
   cursor: pointer;
   font: inherit;
 }
@@ -636,9 +826,237 @@ form button[type="submit"]:disabled {
   grid-template-columns: 1fr 1fr 1fr auto;
   align-items: center;
   gap: 10px;
-  background: #fff;
-  border: 1px solid #dde0d8;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 8px;
   padding: 10px 14px;
   font-size: 0.85rem;
+}
+
+/* ---------- Dashboard ---------- */
+.dashboard-page h2 {
+  margin: 0 0 4px;
+}
+
+.dashboard-subtitle {
+  color: var(--text-muted);
+  margin: 0 0 20px;
+  font-size: 0.9rem;
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.stat-card .stat-value {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-card .stat-label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+/* ---------- Admin ---------- */
+.admin-page h2 {
+  margin: 0 0 16px;
+}
+
+.admin-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.admin-tabs button {
+  padding: 7px 14px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: 999px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.85rem;
+}
+
+.admin-tabs button.active {
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border-color: var(--accent);
+}
+
+.admin-search {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 16px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: 6px;
+  font: inherit;
+  box-sizing: border-box;
+}
+
+.admin-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.admin-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px 18px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.admin-card-main {
+  min-width: 180px;
+}
+
+.admin-card-main strong {
+  display: block;
+  font-size: 0.95rem;
+}
+
+.admin-card-main span {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+.admin-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-card-actions button {
+  padding: 7px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.82rem;
+}
+
+.admin-card-actions button.primary {
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border-color: var(--accent);
+}
+
+.admin-card-actions button.danger {
+  color: var(--danger-text);
+  border-color: var(--danger);
+}
+
+.admin-card-actions select {
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.82rem;
+}
+
+.admin-card-actions input[type="text"] {
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.82rem;
+  width: 160px;
+  max-width: 100%;
+}
+
+.admin-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 16px;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.admin-pagination button {
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: 6px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.82rem;
+}
+
+.admin-pagination button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 600px) {
+  .page {
+    padding: 24px 14px;
+  }
+
+  .auth-card,
+  .profile-card {
+    padding: 18px;
+  }
+
+  .tabs {
+    gap: 6px;
+  }
+
+  .tabs button {
+    padding: 7px 12px;
+    font-size: 0.85rem;
+  }
+
+  .invoice-row {
+    grid-template-columns: 1fr 1fr;
+    row-gap: 4px;
+  }
+
+  .chat-page {
+    height: 60vh;
+  }
+
+  .admin-card {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .admin-card-actions {
+    justify-content: flex-start;
+  }
 }

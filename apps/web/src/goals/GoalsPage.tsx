@@ -1,9 +1,12 @@
 import type { GoalWithHabits } from "@lifecouch/shared";
 import { useEffect, useState, type FormEvent } from "react";
+import { EmptyState, ErrorBanner, LoadingState } from "../common/Feedback";
+import { useTranslation } from "../i18n/LocaleContext";
 import * as api from "../lib/api";
 import { HabitRow } from "./HabitRow";
 
 export function GoalsPage() {
+  const { t } = useTranslation();
   const [goals, setGoals] = useState<GoalWithHabits[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -11,11 +14,13 @@ export function GoalsPage() {
   const [creating, setCreating] = useState(false);
 
   async function load() {
+    setLoading(true);
     try {
       const { goals: fetched } = await api.listGoals();
       setGoals(fetched);
+      setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Maqsadlarni yuklab bo'lmadi");
+      setError(err instanceof Error ? err.message : t("goals.errorLoad"));
     } finally {
       setLoading(false);
     }
@@ -34,7 +39,7 @@ export function GoalsPage() {
       setGoals((prev) => [...prev, goal]);
       setNewGoalTitle("");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Maqsad yaratib bo'lmadi");
+      setError(err instanceof Error ? err.message : t("goals.errorCreate"));
     } finally {
       setCreating(false);
     }
@@ -66,7 +71,7 @@ export function GoalsPage() {
   }
 
   if (loading) {
-    return <p className="loading">Yuklanmoqda...</p>;
+    return <LoadingState />;
   }
 
   return (
@@ -75,16 +80,16 @@ export function GoalsPage() {
         <input
           value={newGoalTitle}
           onChange={(e) => setNewGoalTitle(e.target.value)}
-          placeholder="Yangi maqsad, masalan: Sport bilan shug'ullanish"
+          placeholder={t("goals.newPlaceholder")}
         />
         <button type="submit" disabled={creating || !newGoalTitle.trim()}>
-          Qo'shish
+          {t("goals.add")}
         </button>
       </form>
 
-      {error && <p className="auth-error">{error}</p>}
+      {error && <ErrorBanner message={error} onRetry={() => void load()} />}
 
-      {goals.length === 0 && !error && <p className="empty-state">Hali maqsad yo'q — birinchisini qo'shing.</p>}
+      {goals.length === 0 && !error && <EmptyState>{t("goals.empty")}</EmptyState>}
 
       <div className="goal-list">
         {goals.map((goal) => (
@@ -115,6 +120,7 @@ function GoalCard({
   onHabitDeleted: (habitId: string) => void;
   onHabitToggled: (habitId: string, streak: number) => void;
 }) {
+  const { t } = useTranslation();
   const [newHabitTitle, setNewHabitTitle] = useState("");
   const [addingHabit, setAddingHabit] = useState(false);
 
@@ -136,7 +142,7 @@ function GoalCard({
       <div className="goal-card-header">
         <h3>{goal.title}</h3>
         <button type="button" className="link-danger" onClick={onDelete}>
-          O'chirish
+          {t("goals.delete")}
         </button>
       </div>
 
@@ -155,7 +161,7 @@ function GoalCard({
         <input
           value={newHabitTitle}
           onChange={(e) => setNewHabitTitle(e.target.value)}
-          placeholder="Yangi odat, masalan: 20 daqiqa yugurish"
+          placeholder={t("habit.newPlaceholder")}
         />
         <button type="submit" disabled={addingHabit || !newHabitTitle.trim()}>
           +
