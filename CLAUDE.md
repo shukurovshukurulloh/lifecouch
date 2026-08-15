@@ -24,3 +24,16 @@ ish jurnali `sprints/*.md` fayllarida, umumiy vizual holat `loyiha-panel.html`da
   (masalan `mailer.ts`, `sessions/video.ts`, `billing/stripeClient.ts`). Kalit
   qo'shilganda xatti-harakat xuddi shu kod orqali haqiqiy xizmatga o'tishi kerak —
   chaqiruvchi tomon (route/service) kodini o'zgartirish shart bo'lmasligi kerak.
+
+## Test konventsiyasi
+
+- `apps/api`da Express ilovani qurish (`createApp()`, `src/app.ts`) va serverni
+  ishga tushirish (`listen`, socket.io, cron — `src/index.ts`) ajratilgan. Yangi
+  global middleware/route qo'shilganda `app.ts`ga yoziladi, `index.ts` faqat
+  bootstrap uchun qoladi — bu testlarga ilovani port ochmasdan import qilish
+  imkonini beradi.
+- `apps/api` integratsion testlari haqiqiy Postgres'ga ulanadi, lekin har doim
+  alohida `lifecouch_test` bazasidan foydalanadi (`vitest.config.ts` /
+  `test/globalSetup.ts`) — dev bazasi `lifecouch`ga hech qachon tegilmaydi.
+  Yangi testlar shu konventsiyaga rioya qilishi kerak.
+- `pnpm test` (root) — barcha workspace paketlarning testlarini ishga tushiradi.
