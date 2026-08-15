@@ -1,0 +1,73 @@
+name: CI
+
+# `master`ga push va har qanday pull request'da ishga tushadi — typecheck, build,
+# unit/integratsion testlar. Deploy (CD) bu workflow'ning vazifasi emas — alohida
+# workflow'da, hosting muhiti tanlangach qo'shiladi (sprints/07-test-reliz.md'ga qarang).
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+# Bitta branch/PR uchun eski yugurish yangisi boshlanganda bekor qilinadi — resursni tejaydi.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # apps/api integratsion testlari shu bilan bir xil kredensiallar bilan ishlaydi
+  # (vitest.config.ts) — faqat `lifecouch_test` bazasini ishlatadi, hech qachon
+  # ishlab chiqarish ma'lumotlariga tegmaydi.
+  DATABASE_URL: "postgresql://lifecouch:lifecouch123@localhost:5432/lifecouch?schema=public"
+  JWT_SECRET: "ci-test-secret-do-not-use-in-production"
+  WEB_ORIGIN: "http://localhost:5173"
+  NODE_ENV: "test"
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: lifecouch
+          POSTGRES_PASSWORD: lifecouch123
+          POSTGRES_DB: lifecouch
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U lifecouch"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - name: Kodni olish
+        uses: actions/checkout@v4
+
+      - name: pnpm o'rnatish
+        uses: pnpm/action-setup@v4
+
+      - name: Node.js o'rnatish
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - name: Bog'liqliklarni o'rnatish
+        run: pnpm install --frozen-lockfile
+
+      - name: Prisma Client generatsiya qilish
+        run: pnpm prisma:generate
+
+      - name: Turlarni tekshirish (typecheck)
+        run: pnpm typecheck
+
+      - name: Build
+        run: pnpm build
+
+      - name: Testlar (unit + integratsion)
+        run: pnpm test
+
+      - name: Bog'liqliklarda ma'lum zaifliklarni tekshirish (ma'lumot uchun)
+        run: pnpm audit --audit-level=high
+        continue-on-error: true

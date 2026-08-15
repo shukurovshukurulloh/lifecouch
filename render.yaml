@@ -1,0 +1,60 @@
+# Render Blueprint — https://render.com/docs/blueprint-spec
+#
+# Bitta web-service ham API'ni, ham build qilingan frontendni xizmat qiladi
+# (apps/api/src/app.ts'dagi production-only static-serving blokiga qarang) —
+# shu bilan brauzer nuqtai nazaridan hammasi bitta origin bo'ladi, alohida
+# statik-sayt xizmati va undan API'ga proksi/CORS sozlash shart bo'lmaydi.
+#
+# Birinchi deploy'dan keyingi qadam:
+#   1. Bu blueprint qo'llanilgach, Render "lifecouch"ga https://lifecouch-<random>.onrender.com
+#      manzilini beradi (yoki o'z domeningizni ulaysiz).
+#   2. Render Dashboard > lifecouch > Environment'da WEB_ORIGIN qiymatini xuddi shu
+#      manzilga o'rnating (pastda `sync: false` bilan belgilangan — qiymat bu yerda
+#      SAQLANMAYDI, chunki manzil faqat birinchi deploy'dan keyin ma'lum bo'ladi).
+#   3. STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, ANTHROPIC_API_KEY — ulanmoqchi bo'lgan
+#      tashqi xizmatlar uchun xuddi shu joyda qo'lda kiritiladi. Bo'sh qoldirilsa,
+#      CLAUDE.md'dagi "Tashqi xizmatlar konventsiyasi"ga ko'ra tegishli modul avtomatik
+#      lokal stub rejimida ishlayveradi (kod o'zgarishisiz).
+
+databases:
+  - name: lifecouch-db
+    plan: basic-1gb
+    region: oregon
+    postgresMajorVersion: "16"
+
+services:
+  - name: lifecouch
+    type: web
+    runtime: node
+    plan: starter
+    region: oregon
+    buildCommand: >-
+      pnpm install --frozen-lockfile &&
+      pnpm --filter @lifecouch/api prisma:generate &&
+      pnpm --filter @lifecouch/web build &&
+      pnpm --filter @lifecouch/api build
+    # Migratsiyalar build'dan keyin, lekin serverni ishga tushirishdan OLDIN qo'llanadi
+    # (`migrate deploy` — faqat mavjud migratsiyalarni qo'llaydi, `db push`dan farqli
+    # o'laroq sxemani "moslashtirmaydi"; migratsiya fayllari uchun apps/api/prisma/migrations'ga qarang).
+    preDeployCommand: pnpm --filter @lifecouch/api exec prisma migrate deploy
+    startCommand: node apps/api/dist/index.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: lifecouch-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      # Birinchi deploy'dan keyin xizmatning haqiqiy public URL'iga o'rnatiladi — yuqoridagi izohga qarang.
+      - key: WEB_ORIGIN
+        sync: false
+      # Ixtiyoriy tashqi xizmatlar — bo'sh qoldirilsa mos modul lokal stub rejimida ishlaydi.
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false

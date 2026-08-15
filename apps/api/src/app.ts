@@ -1,3 +1,6 @@
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
@@ -45,6 +48,28 @@ export function createApp(): express.Express {
   app.use("/api/chat", chatRouter);
   app.use("/api/billing", billingRouter);
   app.use("/api/ai", aiRouter);
+
+  // Production'da bitta Render web-service ham API'ni, ham build qilingan frontendni
+  // xizmat qiladi (alohida statik-sayt/CDN xizmati emas) — shu bilan brauzer nuqtai
+  // nazaridan hammasi bitta origin bo'lib qoladi, /api va /socket.io nisbiy yo'llar
+  // (apps/web/src/lib/api.ts, lib/socket.ts) hech qanday o'zgarishsiz ishlaydi va
+  // cross-site cookie/CORS murakkabligi umuman kerak bo'lmaydi. Lokal dev'da web o'z
+  // Vite serverida (5173-port, proksi bilan) alohida ishlaydi — bu blok shunda ishlamaydi.
+  if (env.nodeEnv === "production") {
+    const webDist = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../web/dist");
+    if (fs.existsSync(webDist)) {
+      app.use(express.static(webDist));
+      app.get("*", (req, res, next) => {
+        if (req.path.startsWith("/api") || req.path.startsWith("/socket.io") || req.path === "/health") {
+          next();
+          return;
+        }
+        res.sendFile(path.join(webDist, "index.html"));
+      });
+    } else {
+      console.warn(`[app] web/dist topilmadi (${webDist}) — frontend xizmat qilinmaydi, faqat API ishlaydi.`);
+    }
+  }
 
   app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
     console.error(err);

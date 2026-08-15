@@ -37,3 +37,17 @@ ish jurnali `sprints/*.md` fayllarida, umumiy vizual holat `loyiha-panel.html`da
   `test/globalSetup.ts`) — dev bazasi `lifecouch`ga hech qachon tegilmaydi.
   Yangi testlar shu konventsiyaga rioya qilishi kerak.
 - `pnpm test` (root) — barcha workspace paketlarning testlarini ishga tushiradi.
+
+## Hosting va deploy konventsiyasi
+
+- Production'da bitta Render web-service (`render.yaml`) ham API'ni, ham build
+  qilingan frontendni (`apps/web/dist`) xizmat qiladi — alohida frontend
+  xizmati/CDN yo'q. Bu `apps/api/src/app.ts`dagi production-only static-serving
+  va SPA fallback bloki orqali amalga oshiriladi (`NODE_ENV=production`da
+  faollashadi, lokal dev'da web o'z Vite serverida ishlayveradi). Sabab: brauzer
+  nuqtai nazaridan hammasi bitta origin bo'lib qoladi, shu tufayli
+  `apps/web/src/lib/api.ts` va `lib/socket.ts`dagi nisbiy `/api` va bir xil
+  origin'dagi socket.io ulanishi hech qanday `VITE_API_ORIGIN` yoki cross-site
+  CORS/cookie sozlamasisiz ishlayveradi. Agar kelajakda ikkinchi frontend
+  xizmati yoki alohida API domeni qo'shish kerak bo'lsa, avval shu qarorni va
+  sababini (`sprints/07-test-reliz.md`dagi "Qarorlar" bo'limi) ko'rib chiqing.
