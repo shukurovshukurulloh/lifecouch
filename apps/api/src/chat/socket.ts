@@ -2,6 +2,7 @@ import type { Server as HttpServer } from "node:http";
 import { Server } from "socket.io";
 import { verifyAccessToken } from "../auth/tokens.js";
 import { prisma } from "../db.js";
+import { captureError } from "../monitoring/sentry.js";
 
 interface SendMessagePayload {
   receiverId: string;
@@ -42,7 +43,7 @@ export function createChatServer(httpServer: HttpServer, corsOrigin: string): Se
           io.to(userId).to(payload.receiverId).emit("message:new", message);
           ack?.(message);
         })
-        .catch((err: unknown) => console.error("[chat] xabar saqlanmadi:", err));
+        .catch((err: unknown) => captureError(err, "[chat] xabar saqlanmadi:"));
     });
   });
 

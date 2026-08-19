@@ -162,6 +162,8 @@ export const uz = {
   "common.error": "Xatolik yuz berdi",
   "common.retry": "Qayta urinish",
   "common.none": "—",
+  "common.crashed": "Kutilmagan xatolik yuz berdi. Sahifani qayta yuklab ko'ring.",
+  "common.reload": "Sahifani qayta yuklash",
 } as const;
 
 export type TranslationKey = keyof typeof uz;

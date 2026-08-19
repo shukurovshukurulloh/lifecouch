@@ -4,6 +4,7 @@ import { z } from "zod";
 import { requireAuth } from "../auth/middleware.js";
 import { prisma } from "../db.js";
 import { asyncHandler } from "../lib/asyncHandler.js";
+import { captureError } from "../monitoring/sentry.js";
 import { buildUserContext } from "./context.js";
 import { remainingAiMessagesToday, streamAiReply } from "./service.js";
 
@@ -72,7 +73,7 @@ aiRouter.post(
         res.write(chunk);
       }
     } catch (err) {
-      console.error("[ai] javob generatsiya qilishda xato:", err);
+      captureError(err, "[ai] javob generatsiya qilishda xato:");
       if (!full) {
         full = "Kechirasiz, AI javob berishda xatolik yuz berdi. Birozdan so'ng qayta urinib ko'ring.";
         res.write(full);

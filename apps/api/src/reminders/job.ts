@@ -3,6 +3,7 @@ import { GoalStatus, HabitFrequency } from "@prisma/client";
 import { prisma } from "../db.js";
 import { toDbDate, todayKey } from "../goals/dates.js";
 import { sendHabitReminderEmail } from "../mailer.js";
+import { captureError } from "../monitoring/sentry.js";
 
 /** Bugun hali belgilanmagan kunlik odatlar bo'yicha foydalanuvchilarga eslatma yuboradi. */
 export async function runDailyReminderCheck(): Promise<void> {
@@ -33,6 +34,6 @@ export async function runDailyReminderCheck(): Promise<void> {
 export function scheduleDailyReminders(): void {
   // Har kuni 18:00'da ishga tushadi (server vaqti bo'yicha).
   cron.schedule("0 18 * * *", () => {
-    runDailyReminderCheck().catch((err: unknown) => console.error("[reminders] xato:", err));
+    runDailyReminderCheck().catch((err: unknown) => captureError(err, "[reminders] xato:"));
   });
 }

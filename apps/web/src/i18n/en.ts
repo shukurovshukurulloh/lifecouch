@@ -161,4 +161,6 @@ export const en: Record<TranslationKey, string> = {
   "common.error": "Something went wrong",
   "common.retry": "Retry",
   "common.none": "—",
+  "common.crashed": "An unexpected error occurred. Try reloading the page.",
+  "common.reload": "Reload page",
 };

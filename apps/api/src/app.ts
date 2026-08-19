@@ -14,6 +14,7 @@ import { coachesRouter } from "./coaches/routes.js";
 import { dashboardRouter } from "./dashboard/routes.js";
 import { env } from "./env.js";
 import { goalsRouter } from "./goals/routes.js";
+import { attachExpressErrorHandler, captureError, initMonitoring } from "./monitoring/sentry.js";
 import { sessionsRouter } from "./sessions/routes.js";
 import { usersRouter } from "./users/routes.js";
 
@@ -23,6 +24,8 @@ import { usersRouter } from "./users/routes.js";
  * Server bootstrap (listen, socket.io, cron) — index.ts'da.
  */
 export function createApp(): express.Express {
+  initMonitoring();
+
   const app = express();
 
   app.use(cors({ origin: env.webOrigin, credentials: true }));
@@ -71,8 +74,10 @@ export function createApp(): express.Express {
     }
   }
 
-  app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
-    console.error(err);
+  attachExpressErrorHandler(app);
+
+  app.use((err: unknown, req: Request, res: Response, _next: NextFunction) => {
+    captureError(err, `[app] ${req.method} ${req.path}`);
     res.status(500).json({ error: "Server xatosi, keyinroq urinib ko'ring" });
   });
 

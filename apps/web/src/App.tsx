@@ -7,11 +7,13 @@ import { AuthProvider, useAuth } from "./auth/AuthContext";
 import { BillingPage } from "./billing/BillingPage";
 import { ChatPage } from "./chat/ChatPage";
 import { CoachesPage } from "./coaches/CoachesPage";
+import { CrashFallback } from "./common/CrashFallback";
 import { LoadingState } from "./common/Feedback";
 import { DashboardPage } from "./dashboard/DashboardPage";
 import { GoalsPage } from "./goals/GoalsPage";
 import { LanguageSwitcher } from "./i18n/LanguageSwitcher";
 import { LocaleProvider, useTranslation } from "./i18n/LocaleContext";
+import { MonitoringErrorBoundary } from "./monitoring/sentry";
 import { ProfilePage } from "./profile/ProfilePage";
 import { MySessionsPage } from "./sessions/MySessionsPage";
 import { ThemeProvider } from "./theme/ThemeContext";
@@ -100,11 +102,13 @@ function AuthGate() {
 export function App() {
   return (
     <LocaleProvider>
-      <ThemeProvider>
-        <AuthProvider>
-          <AuthGate />
-        </AuthProvider>
-      </ThemeProvider>
+      <MonitoringErrorBoundary fallback={<CrashFallback />}>
+        <ThemeProvider>
+          <AuthProvider>
+            <AuthGate />
+          </AuthProvider>
+        </ThemeProvider>
+      </MonitoringErrorBoundary>
     </LocaleProvider>
   );
 }

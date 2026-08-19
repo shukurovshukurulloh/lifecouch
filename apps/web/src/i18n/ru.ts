@@ -161,4 +161,6 @@ export const ru: Record<TranslationKey, string> = {
   "common.error": "Произошла ошибка",
   "common.retry": "Повторить",
   "common.none": "—",
+  "common.crashed": "Произошла непредвиденная ошибка. Попробуйте перезагрузить страницу.",
+  "common.reload": "Перезагрузить страницу",
 };

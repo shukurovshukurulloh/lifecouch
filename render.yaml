@@ -11,10 +11,13 @@
 #   2. Render Dashboard > lifecouch > Environment'da WEB_ORIGIN qiymatini xuddi shu
 #      manzilga o'rnating (pastda `sync: false` bilan belgilangan — qiymat bu yerda
 #      SAQLANMAYDI, chunki manzil faqat birinchi deploy'dan keyin ma'lum bo'ladi).
-#   3. STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, ANTHROPIC_API_KEY — ulanmoqchi bo'lgan
-#      tashqi xizmatlar uchun xuddi shu joyda qo'lda kiritiladi. Bo'sh qoldirilsa,
-#      CLAUDE.md'dagi "Tashqi xizmatlar konventsiyasi"ga ko'ra tegishli modul avtomatik
-#      lokal stub rejimida ishlayveradi (kod o'zgarishisiz).
+#   3. STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, ANTHROPIC_API_KEY, SENTRY_DSN,
+#      VITE_SENTRY_DSN — ulanmoqchi bo'lgan tashqi xizmatlar uchun xuddi shu joyda
+#      qo'lda kiritiladi. Bo'sh qoldirilsa, CLAUDE.md'dagi "Tashqi xizmatlar
+#      konventsiyasi"ga ko'ra tegishli modul avtomatik lokal stub rejimida ishlayveradi
+#      (kod o'zgarishisiz). VITE_SENTRY_DSN build vaqtida (`pnpm --filter @lifecouch/web
+#      build`) kerak bo'lgani uchun runtime emas, balki build muhitida ham mavjud
+#      bo'lishi kerak — Render web-service'lari uchun envVars ikkalasida ham beriladi.
 
 databases:
   - name: lifecouch-db
@@ -57,4 +60,8 @@ services:
       - key: STRIPE_WEBHOOK_SECRET
         sync: false
       - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: SENTRY_DSN
+        sync: false
+      - key: VITE_SENTRY_DSN
         sync: false

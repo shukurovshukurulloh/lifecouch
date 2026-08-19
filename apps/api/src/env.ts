@@ -20,4 +20,7 @@ export const env = {
   // Bo'lmasa ai/client.ts AI coach javoblarini lokal stub bilan simulyatsiya qiladi.
   anthropicApiKey: process.env.ANTHROPIC_API_KEY,
   anthropicModel: process.env.ANTHROPIC_MODEL ?? "claude-sonnet-5",
+  // Sentry hali ulanmagan bo'lishi mumkin (dev muhitda) — shu sabab ixtiyoriy.
+  // Bo'lmasa monitoring/sentry.ts xatolarni faqat konsolga yozadi (stub rejim).
+  sentryDsn: process.env.SENTRY_DSN,
 };
