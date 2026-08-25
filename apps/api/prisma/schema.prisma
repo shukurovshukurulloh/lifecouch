@@ -79,6 +79,9 @@ model User {
   passwordResetTokens PasswordResetToken[]
   invoices            Invoice[]
   aiMessages          AiMessage[]
+
+  createdInviteCodes InviteCode[] @relation("CreatedInviteCodes")
+  usedInviteCode     InviteCode?  @relation("UsedInviteCode")
 }
 
 /// Persisted, rotatable refresh token backing the JWT access-token flow.
@@ -238,6 +241,22 @@ model Invoice {
   createdAt       DateTime         @default(now())
 
   @@index([userId])
+}
+
+/// Beta-reliz uchun bir martalik taklifnoma kodi — admin yaratadi, `/auth/register`
+/// `BETA_INVITE_REQUIRED=true` bo'lganda ro'yxatdan o'tish uchun shuni talab qiladi.
+model InviteCode {
+  id          String    @id @default(cuid())
+  code        String    @unique
+  note        String?
+  createdById String
+  createdBy   User      @relation("CreatedInviteCodes", fields: [createdById], references: [id], onDelete: Cascade)
+  usedById    String?   @unique
+  usedBy      User?     @relation("UsedInviteCode", fields: [usedById], references: [id], onDelete: SetNull)
+  usedAt      DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([createdById])
 }
 
 /// AI coach bilan suhbat tarixidagi bitta xabar (foydalanuvchidan yoki AI javobi).

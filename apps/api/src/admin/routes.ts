@@ -1,10 +1,11 @@
+import crypto from "node:crypto";
 import { CoachStatus, Role, SubscriptionPlan, SubscriptionStatus } from "@prisma/client";
 import { Router } from "express";
 import { z } from "zod";
 import { requireAuth, requireRole } from "../auth/middleware.js";
 import { prisma } from "../db.js";
 import { asyncHandler } from "../lib/asyncHandler.js";
-import { toAdminCoachApplication, toAdminSubscription, toAdminUser } from "./serialize.js";
+import { toAdminCoachApplication, toAdminInviteCode, toAdminSubscription, toAdminUser } from "./serialize.js";
 
 export const adminRouter = Router();
 adminRouter.use(requireAuth, requireRole(Role.ADMIN));
@@ -203,5 +204,103 @@ adminRouter.get(
       prisma.subscription.count({ where }),
     ]);
     res.json({ subscriptions: subscriptions.map(toAdminSubscription), total, page, pageSize });
+  }),
+);
+
+// ---------- Beta taklifnoma kodlari ----------
+
+function generateInviteCode(): string {
+  return crypto.randomBytes(5).toString("hex").toUpperCase();
+}
+
+const createInviteCodesSchema = z.object({
+  note: z.string().trim().max(200).optional(),
+  count: z.coerce.number().int().min(1).max(50).default(1),
+});
+
+/** Bitta yoki bir nechta bir martalik taklifnoma kodi yaratadi (beta-reliz uchun). */
+adminRouter.post(
+  "/invite-codes",
+  asyncHandler(async (req, res) => {
+    const parsed = createInviteCodesSchema.safeParse(req.body ?? {});
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.issues[0].message });
+      return;
+    }
+    const { note, count } = parsed.data;
+
+    const codes = [];
+    for (let i = 0; i < count; i += 1) {
+      // Amalda deyarli hech qachon to'qnashmaydi (10 hex belgi), lekin @unique
+      // buzilishiga qarshi bir necha marta qayta urinamiz.
+      let created = null;
+      for (let attempt = 0; attempt < 5 && !created; attempt += 1) {
+        try {
+          created = await prisma.inviteCode.create({
+            data: { code: generateInviteCode(), note, createdById: req.user!.id },
+            include: { usedBy: { select: { name: true, email: true } } },
+          });
+        } catch {
+          // unique to'qnashuv — keyingi urinishda yangi kod bilan qayta sinaladi
+        }
+      }
+      if (!created) {
+        res.status(500).json({ error: "Taklifnoma kodi yaratib bo'lmadi, qaytadan urinib ko'ring" });
+        return;
+      }
+      codes.push(created);
+    }
+
+    res.status(201).json({ codes: codes.map(toAdminInviteCode) });
+  }),
+);
+
+const listInviteCodesSchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(20),
+  status: z.enum(["used", "unused"]).optional(),
+});
+
+adminRouter.get(
+  "/invite-codes",
+  asyncHandler(async (req, res) => {
+    const parsed = listInviteCodesSchema.safeParse(req.query);
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.issues[0].message });
+      return;
+    }
+    const { page, pageSize, status } = parsed.data;
+    const where = status ? { usedById: status === "used" ? { not: null } : null } : {};
+
+    const [codes, total] = await Promise.all([
+      prisma.inviteCode.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        include: { usedBy: { select: { name: true, email: true } } },
+      }),
+      prisma.inviteCode.count({ where }),
+    ]);
+
+    res.json({ codes: codes.map(toAdminInviteCode), total, page, pageSize });
+  }),
+);
+
+/** Faqat hali ishlatilmagan kodni bekor qiladi — ishlatilgan kod tarix sifatida saqlanadi. */
+adminRouter.delete(
+  "/invite-codes/:id",
+  asyncHandler(async (req, res) => {
+    const code = await prisma.inviteCode.findUnique({ where: { id: req.params.id } });
+    if (!code) {
+      res.status(404).json({ error: "Taklifnoma kodi topilmadi" });
+      return;
+    }
+    if (code.usedById) {
+      res.status(400).json({ error: "Ishlatilgan kodni bekor qilib bo'lmaydi" });
+      return;
+    }
+    await prisma.inviteCode.delete({ where: { id: code.id } });
+    res.status(204).send();
   }),
 );

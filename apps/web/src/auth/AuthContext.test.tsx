@@ -85,6 +85,25 @@ describe("AuthContext", () => {
     expect(result.current.user).toBeNull();
   });
 
+  it("register ixtiyoriy inviteCode'ni api.register()ga uzatadi (beta-reliz)", async () => {
+    mockApi.refresh.mockRejectedValue(new Error("no session"));
+    mockApi.register.mockResolvedValue({ accessToken: "tok-4", user });
+    const { result } = renderHook(() => useAuth(), { wrapper: AuthProviderWrapper });
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await act(async () => {
+      await result.current.register("ali@example.com", "password123", "Ali", "INVITE123");
+    });
+
+    expect(mockApi.register).toHaveBeenCalledWith({
+      email: "ali@example.com",
+      password: "password123",
+      name: "Ali",
+      inviteCode: "INVITE123",
+    });
+    expect(result.current.user).toEqual(user);
+  });
+
   it("refreshProfile() fetchMe() EMAS, api.refresh()ni chaqiradi — role claim yangilanishi uchun (CLAUDE.md konventsiyasi)", async () => {
     mockApi.refresh.mockResolvedValue({ accessToken: "tok-1", user });
     const { result } = renderHook(() => useAuth(), { wrapper: AuthProviderWrapper });

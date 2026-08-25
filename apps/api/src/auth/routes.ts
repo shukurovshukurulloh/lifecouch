@@ -20,6 +20,9 @@ import {
 
 export const authRouter = Router();
 
+/** `$transaction` ichidan tashqariga chiqarib, register handler'da 400'ga aylantiriladi. */
+class InviteCodeError extends Error {}
+
 const isProd = env.nodeEnv === "production";
 const RESET_TOKEN_TTL_MS = 60 * 60 * 1000; // 1 soat
 
@@ -41,10 +44,16 @@ async function issueSession(res: Response, userId: string, role: Role): Promise<
   return accessToken;
 }
 
+/** Frontend ro'yxatdan o'tish formasida taklifnoma-kod maydonini ko'rsatish kerakmi, shundan biladi. */
+authRouter.get("/beta-status", (_req, res) => {
+  res.json({ inviteRequired: env.betaInviteRequired });
+});
+
 const registerSchema = z.object({
   email: z.string().email("Email formati noto'g'ri"),
   password: z.string().min(8, "Parol kamida 8 belgidan iborat bo'lishi kerak"),
   name: z.string().min(1, "Ism kiritilishi shart"),
+  inviteCode: z.string().trim().min(1).optional(),
 });
 
 authRouter.post(
@@ -55,7 +64,7 @@ authRouter.post(
       res.status(400).json({ error: parsed.error.issues[0].message });
       return;
     }
-    const { email, password, name } = parsed.data;
+    const { email, password, name, inviteCode } = parsed.data;
 
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {
@@ -63,18 +72,46 @@ authRouter.post(
       return;
     }
 
-    const passwordHash = await hashPassword(password);
-    const user = await prisma.$transaction(async (tx) => {
-      const created = await tx.user.create({ data: { email, passwordHash, name } });
-      // Har bir foydalanuvchi FREE obuna bilan boshlaydi (billing/service.ts'dagi
-      // ensureSubscription buni lazily ham yaratadi, lekin bu yerda ham qilib qo'yish
-      // "har bir userda Subscription bor" invariantini soddalashtiradi).
-      await tx.subscription.create({ data: { userId: created.id } });
-      return created;
-    });
+    if (env.betaInviteRequired && !inviteCode) {
+      res.status(400).json({ error: "Ro'yxatdan o'tish uchun taklifnoma kodi kerak" });
+      return;
+    }
 
-    const accessToken = await issueSession(res, user.id, user.role);
-    res.status(201).json({ accessToken, user: toPublicUser(user) });
+    const passwordHash = await hashPassword(password);
+    try {
+      const user = await prisma.$transaction(async (tx) => {
+        if (env.betaInviteRequired && inviteCode) {
+          // usedById: null shartini update ichida ham tekshiramiz — shu bilan ikkita
+          // parallel so'rov bir xil kodni ikki marta ishlata olmaydi (poyga holati yo'q).
+          const { count } = await tx.inviteCode.updateMany({
+            where: { code: inviteCode, usedById: null },
+            data: { usedAt: new Date() },
+          });
+          if (count === 0) {
+            throw new InviteCodeError();
+          }
+        }
+
+        const created = await tx.user.create({ data: { email, passwordHash, name } });
+        if (env.betaInviteRequired && inviteCode) {
+          await tx.inviteCode.update({ where: { code: inviteCode }, data: { usedById: created.id } });
+        }
+        // Har bir foydalanuvchi FREE obuna bilan boshlaydi (billing/service.ts'dagi
+        // ensureSubscription buni lazily ham yaratadi, lekin bu yerda ham qilib qo'yish
+        // "har bir userda Subscription bor" invariantini soddalashtiradi).
+        await tx.subscription.create({ data: { userId: created.id } });
+        return created;
+      });
+
+      const accessToken = await issueSession(res, user.id, user.role);
+      res.status(201).json({ accessToken, user: toPublicUser(user) });
+    } catch (err) {
+      if (err instanceof InviteCodeError) {
+        res.status(400).json({ error: "Taklifnoma kodi yaroqsiz yoki allaqachon ishlatilgan" });
+        return;
+      }
+      throw err;
+    }
   }),
 );
 

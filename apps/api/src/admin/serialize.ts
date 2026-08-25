@@ -1,4 +1,4 @@
-import type { Coach, Subscription, User } from "@prisma/client";
+import type { Coach, InviteCode, Subscription, User } from "@prisma/client";
 
 export interface AdminUserDto {
   id: string;
@@ -76,5 +76,29 @@ export function toAdminSubscription(sub: Subscription & { user: { name: string; 
     status: sub.status,
     currentPeriodEnd: sub.currentPeriodEnd,
     createdAt: sub.createdAt,
+  };
+}
+
+export interface AdminInviteCodeDto {
+  id: string;
+  code: string;
+  note: string | null;
+  usedByName: string | null;
+  usedByEmail: string | null;
+  usedAt: Date | null;
+  createdAt: Date;
+}
+
+export function toAdminInviteCode(
+  invite: InviteCode & { usedBy: { name: string; email: string } | null },
+): AdminInviteCodeDto {
+  return {
+    id: invite.id,
+    code: invite.code,
+    note: invite.note,
+    usedByName: invite.usedBy?.name ?? null,
+    usedByEmail: invite.usedBy?.email ?? null,
+    usedAt: invite.usedAt,
+    createdAt: invite.createdAt,
   };
 }

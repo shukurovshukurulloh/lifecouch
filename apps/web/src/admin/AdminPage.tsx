@@ -1,5 +1,6 @@
 import type {
   AdminCoachApplication,
+  AdminInviteCode,
   AdminStats,
   AdminSubscription,
   AdminUser,
@@ -12,7 +13,7 @@ import { EmptyState, ErrorBanner, LoadingState } from "../common/Feedback";
 import { useTranslation, type TranslationKey } from "../i18n/LocaleContext";
 import * as api from "../lib/api";
 
-type AdminTab = "overview" | "coaches" | "users" | "subscriptions";
+type AdminTab = "overview" | "coaches" | "users" | "subscriptions" | "inviteCodes";
 
 const COACH_STATUS_KEY: Record<CoachStatus, TranslationKey> = {
   PENDING: "status.coachPending",
@@ -51,12 +52,20 @@ export function AdminPage() {
         >
           {t("admin.tabSubscriptions")}
         </button>
+        <button
+          type="button"
+          className={tab === "inviteCodes" ? "active" : ""}
+          onClick={() => setTab("inviteCodes")}
+        >
+          {t("admin.tabInviteCodes")}
+        </button>
       </nav>
 
       {tab === "overview" && <OverviewTab />}
       {tab === "coaches" && <CoachApplicationsTab />}
       {tab === "users" && <UsersTab />}
       {tab === "subscriptions" && <SubscriptionsTab />}
+      {tab === "inviteCodes" && <InviteCodesTab />}
     </div>
   );
 }
@@ -369,6 +378,138 @@ function SubscriptionsTab() {
             {t("admin.nextPage")}
           </button>
         </div>
+      )}
+    </div>
+  );
+}
+
+function InviteCodesTab() {
+  const { t } = useTranslation();
+  const [codes, setCodes] = useState<AdminInviteCode[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [note, setNote] = useState("");
+  const [count, setCount] = useState(1);
+  const [generating, setGenerating] = useState(false);
+
+  async function load(currentPage: number) {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await api.fetchAdminInviteCodes({ page: currentPage, pageSize: PAGE_SIZE });
+      setCodes(data.codes);
+      setTotal(data.total);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("admin.errorLoad"));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    void load(page);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page]);
+
+  async function handleGenerate(event: FormEvent) {
+    event.preventDefault();
+    setGenerating(true);
+    try {
+      await api.createInviteCodes({ note: note.trim() || undefined, count });
+      setNote("");
+      setCount(1);
+      setPage(1);
+      await load(1);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("admin.errorLoad"));
+    } finally {
+      setGenerating(false);
+    }
+  }
+
+  async function handleRevoke(id: string) {
+    setBusyId(id);
+    try {
+      await api.revokeInviteCode(id);
+      setCodes((prev) => prev.filter((c) => c.id !== id));
+      setTotal((prev) => prev - 1);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("admin.errorLoad"));
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+  return (
+    <div>
+      <form className="admin-invite-generate" onSubmit={handleGenerate}>
+        <input
+          type="text"
+          placeholder={t("admin.inviteCodeNote")}
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+        />
+        <input
+          type="number"
+          min={1}
+          max={50}
+          value={count}
+          onChange={(e) => setCount(Math.min(50, Math.max(1, Number(e.target.value) || 1)))}
+        />
+        <button type="submit" className="primary" disabled={generating}>
+          {t("admin.generateInviteCodes")}
+        </button>
+      </form>
+
+      {error && <ErrorBanner message={error} onRetry={() => void load(page)} />}
+      {loading ? (
+        <LoadingState />
+      ) : (
+        <>
+          {codes.length === 0 && !error && <EmptyState>{t("admin.noInviteCodes")}</EmptyState>}
+          <div className="admin-card-list">
+            {codes.map((code) => (
+              <div key={code.id} className="admin-card">
+                <div className="admin-card-main">
+                  <strong>{code.code}</strong>
+                  <span>
+                    {code.note ? `${code.note} · ` : ""}
+                    {new Date(code.createdAt).toLocaleDateString()}
+                    {code.usedByEmail ? ` · ${t("admin.inviteCodeUsed")}: ${code.usedByEmail}` : ` · ${t("admin.inviteCodeUnused")}`}
+                  </span>
+                </div>
+                {!code.usedByEmail && (
+                  <div className="admin-card-actions">
+                    <button
+                      type="button"
+                      className="danger"
+                      disabled={busyId === code.id}
+                      onClick={() => void handleRevoke(code.id)}
+                    >
+                      {t("admin.revoke")}
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+          {totalPages > 1 && (
+            <div className="admin-pagination">
+              <button type="button" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+                {t("admin.prevPage")}
+              </button>
+              <span>{t("admin.pageInfo", { page, totalPages })}</span>
+              <button type="button" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
+                {t("admin.nextPage")}
+              </button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

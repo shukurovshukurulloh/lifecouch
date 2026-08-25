@@ -1,5 +1,6 @@
 import type {
   AdminCoachApplication,
+  AdminInviteCode,
   AdminStats,
   AdminSubscription,
   AdminUser,
@@ -7,6 +8,7 @@ import type {
   AiUsageDto,
   AuthResponse,
   AvailabilitySlotDto,
+  BetaStatus,
   ChatMessage,
   DashboardSummary,
   GoalWithHabits,
@@ -54,8 +56,14 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   return body as T;
 }
 
-export function register(input: { email: string; password: string; name: string }): Promise<AuthResponse> {
+export function register(
+  input: { email: string; password: string; name: string; inviteCode?: string },
+): Promise<AuthResponse> {
   return request<AuthResponse>("/auth/register", { method: "POST", body: JSON.stringify(input) });
+}
+
+export function fetchBetaStatus(): Promise<BetaStatus> {
+  return request<BetaStatus>("/auth/beta-status");
 }
 
 export function login(input: { email: string; password: string }): Promise<AuthResponse> {
@@ -264,4 +272,23 @@ export function fetchAdminSubscriptions(input: { page?: number; pageSize?: numbe
   if (input.pageSize) params.set("pageSize", String(input.pageSize));
   const qs = params.toString();
   return request(`/admin/subscriptions${qs ? `?${qs}` : ""}`);
+}
+
+export function fetchAdminInviteCodes(
+  input: { page?: number; pageSize?: number; status?: "used" | "unused" } = {},
+): Promise<{ codes: AdminInviteCode[]; total: number; page: number; pageSize: number }> {
+  const params = new URLSearchParams();
+  if (input.page) params.set("page", String(input.page));
+  if (input.pageSize) params.set("pageSize", String(input.pageSize));
+  if (input.status) params.set("status", input.status);
+  const qs = params.toString();
+  return request(`/admin/invite-codes${qs ? `?${qs}` : ""}`);
+}
+
+export function createInviteCodes(input: { note?: string; count?: number }): Promise<{ codes: AdminInviteCode[] }> {
+  return request("/admin/invite-codes", { method: "POST", body: JSON.stringify(input) });
+}
+
+export function revokeInviteCode(id: string): Promise<void> {
+  return request(`/admin/invite-codes/${id}`, { method: "DELETE" });
 }

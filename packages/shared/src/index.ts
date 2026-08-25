@@ -191,6 +191,20 @@ export interface AdminUser {
   subscriptionPlan: SubscriptionPlan | null;
 }
 
+export interface BetaStatus {
+  inviteRequired: boolean;
+}
+
+export interface AdminInviteCode {
+  id: string;
+  code: string;
+  note: string | null;
+  usedByName: string | null;
+  usedByEmail: string | null;
+  usedAt: string | null;
+  createdAt: string;
+}
+
 export interface AdminSubscription {
   id: string;
   userId: string;

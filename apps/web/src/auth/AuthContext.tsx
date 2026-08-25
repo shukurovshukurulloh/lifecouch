@@ -9,7 +9,7 @@ interface AuthContextValue {
   loading: boolean;
   error: string | null;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, name: string) => Promise<void>;
+  register: (email: string, password: string, name: string, inviteCode?: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
@@ -50,10 +50,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [t]);
 
-  const register = useCallback(async (email: string, password: string, name: string) => {
+  const register = useCallback(async (email: string, password: string, name: string, inviteCode?: string) => {
     setError(null);
     try {
-      const session = await api.register({ email, password, name });
+      const session = await api.register({ email, password, name, inviteCode });
       setAccessToken(session.accessToken);
       setUser(session.user);
     } catch (err) {

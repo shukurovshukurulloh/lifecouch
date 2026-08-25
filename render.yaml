@@ -65,3 +65,7 @@ services:
         sync: false
       - key: VITE_SENTRY_DSN
         sync: false
+      # Beta-reliz bayrog'i — birinchi cheklangan foydalanuvchilar guruhi tayyor
+      # bo'lganda Dashboard'da "true"ga o'rnatiladi (auth/routes.ts: /auth/register).
+      - key: BETA_INVITE_REQUIRED
+        sync: false

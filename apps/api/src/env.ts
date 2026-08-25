@@ -23,4 +23,13 @@ export const env = {
   // Sentry hali ulanmagan bo'lishi mumkin (dev muhitda) — shu sabab ixtiyoriy.
   // Bo'lmasa monitoring/sentry.ts xatolarni faqat konsolga yozadi (stub rejim).
   sentryDsn: process.env.SENTRY_DSN,
+  // Beta-reliz bayrog'i — yoqilmagan bo'lsa (default) /auth/register hech qanday
+  // cheklovsiz ishlayveradi. "true" bo'lsa, faqat admin yaratgan ishlatilmagan
+  // taklifnoma kodiga ega odamlar ro'yxatdan o'ta oladi (auth/routes.ts). Boshqa
+  // bayroqlardan farqli o'laroq getter sifatida yozilgan — modul yuklanganda bir
+  // marta emas, har o'qishda process.env'dan olinadi, shu bilan integratsion
+  // testlar uni process restart qilmasdan yoqib/o'chira oladi (test/inviteCodes.test.ts).
+  get betaInviteRequired(): boolean {
+    return process.env.BETA_INVITE_REQUIRED === "true";
+  },
 };
