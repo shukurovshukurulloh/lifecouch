@@ -84,8 +84,38 @@ export interface SessionBooking {
   durationMinutes: number;
   status: BookingStatus;
   videoLink: string | null;
+  /// Bron paytida coach narxidan suratga olingan — eski sessiyalarda bo'lmasligi mumkin.
+  priceCents?: number | null;
+  currency?: string | null;
   coach?: { user: { name: string } };
   user?: { name: string };
+}
+
+export type PayoutStatus = "PENDING" | "PAID" | "REJECTED";
+
+export interface EarningsSummary {
+  totalEarnedCents: number;
+  paidCents: number;
+  pendingCents: number;
+  availableCents: number;
+  currency: string;
+}
+
+export interface PayoutRequestDto {
+  id: string;
+  amountCents: number;
+  currency: string;
+  status: PayoutStatus;
+  note: string | null;
+  adminNote: string | null;
+  requestedAt: string;
+  processedAt: string | null;
+}
+
+export interface AdminPayoutRequest extends PayoutRequestDto {
+  coachId: string;
+  coachName: string;
+  coachEmail: string;
 }
 
 export interface ChatMessage {

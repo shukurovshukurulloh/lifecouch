@@ -64,6 +64,7 @@ export function MySessionsPage({ onOpenChat }: { onOpenChat: (partnerId: string)
                 partnerId={session.userId}
                 onCancel={() => void handleCancel(session.id)}
                 onOpenChat={onOpenChat}
+                showEarnings
               />
             ))}
           </div>
@@ -79,12 +80,14 @@ function SessionRow({
   partnerId,
   onCancel,
   onOpenChat,
+  showEarnings = false,
 }: {
   session: SessionBooking;
   partnerName: string;
   partnerId: string;
   onCancel: () => void;
   onOpenChat: (partnerId: string) => void;
+  showEarnings?: boolean;
 }) {
   const { t, locale } = useTranslation();
   return (
@@ -99,6 +102,12 @@ function SessionRow({
             minute: "2-digit",
           })}{" "}
           &middot; {session.durationMinutes} {t("sessions.minutesShort")}
+          {showEarnings && session.priceCents != null && session.currency && (
+            <>
+              {" "}
+              &middot; {(session.priceCents / 100).toFixed(0)} {session.currency}
+            </>
+          )}
         </span>
       </div>
       <span className={`status-badge status-${session.status.toLowerCase()}`}>

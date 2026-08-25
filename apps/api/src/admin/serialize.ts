@@ -1,4 +1,4 @@
-import type { Coach, InviteCode, Subscription, User } from "@prisma/client";
+import type { Coach, InviteCode, PayoutRequest, Subscription, User } from "@prisma/client";
 
 export interface AdminUserDto {
   id: string;
@@ -100,5 +100,37 @@ export function toAdminInviteCode(
     usedByEmail: invite.usedBy?.email ?? null,
     usedAt: invite.usedAt,
     createdAt: invite.createdAt,
+  };
+}
+
+export interface AdminPayoutRequestDto {
+  id: string;
+  coachId: string;
+  coachName: string;
+  coachEmail: string;
+  amountCents: number;
+  currency: string;
+  status: PayoutRequest["status"];
+  note: string | null;
+  adminNote: string | null;
+  requestedAt: Date;
+  processedAt: Date | null;
+}
+
+export function toAdminPayoutRequest(
+  request: PayoutRequest & { coach: { user: { name: string; email: string } } },
+): AdminPayoutRequestDto {
+  return {
+    id: request.id,
+    coachId: request.coachId,
+    coachName: request.coach.user.name,
+    coachEmail: request.coach.user.email,
+    amountCents: request.amountCents,
+    currency: request.currency,
+    status: request.status,
+    note: request.note,
+    adminNote: request.adminNote,
+    requestedAt: request.requestedAt,
+    processedAt: request.processedAt,
   };
 }

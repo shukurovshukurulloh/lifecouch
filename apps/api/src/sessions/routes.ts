@@ -52,6 +52,10 @@ sessionsRouter.post(
 
     const session = await prisma.$transaction(async (tx) => {
       await tx.availabilitySlot.update({ where: { id: slot.id }, data: { isBooked: true } });
+      // Coach'ning joriy narxi/valyutasi sessiyaga suratga olinadi (payouts/service.ts
+      // coach daromadini shundan hisoblaydi) — coach keyin narxini o'zgartirsa ham
+      // bu sessiyaning tarixiy qiymati o'zgarmaydi.
+      const coach = await tx.coach.findUniqueOrThrow({ where: { id: slot.coachId } });
       return tx.session.create({
         data: {
           userId: req.user!.id,
@@ -60,6 +64,8 @@ sessionsRouter.post(
           scheduledAt: slot.startsAt,
           durationMinutes: Math.round((slot.endsAt.getTime() - slot.startsAt.getTime()) / 60_000),
           status: SessionStatus.CONFIRMED,
+          priceCents: coach.priceCents,
+          currency: coach.currency,
         },
       });
     });

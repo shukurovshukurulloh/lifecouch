@@ -1,10 +1,12 @@
 import type {
   AdminCoachApplication,
   AdminInviteCode,
+  AdminPayoutRequest,
   AdminStats,
   AdminSubscription,
   AdminUser,
   CoachStatus,
+  PayoutStatus,
   Role,
   SubscriptionStatus,
 } from "@lifecouch/shared";
@@ -13,7 +15,7 @@ import { EmptyState, ErrorBanner, LoadingState } from "../common/Feedback";
 import { useTranslation, type TranslationKey } from "../i18n/LocaleContext";
 import * as api from "../lib/api";
 
-type AdminTab = "overview" | "coaches" | "users" | "subscriptions" | "inviteCodes";
+type AdminTab = "overview" | "coaches" | "users" | "subscriptions" | "inviteCodes" | "payouts";
 
 const COACH_STATUS_KEY: Record<CoachStatus, TranslationKey> = {
   PENDING: "status.coachPending",
@@ -26,6 +28,12 @@ const SUBSCRIPTION_STATUS_KEY: Record<SubscriptionStatus, TranslationKey> = {
   TRIALING: "status.trialing",
   PAST_DUE: "status.pastDue",
   CANCELED: "status.cancelled",
+};
+
+const PAYOUT_STATUS_KEY: Record<PayoutStatus, TranslationKey> = {
+  PENDING: "earnings.statusPending",
+  PAID: "earnings.statusPaid",
+  REJECTED: "earnings.statusRejected",
 };
 
 export function AdminPage() {
@@ -59,6 +67,9 @@ export function AdminPage() {
         >
           {t("admin.tabInviteCodes")}
         </button>
+        <button type="button" className={tab === "payouts" ? "active" : ""} onClick={() => setTab("payouts")}>
+          {t("admin.tabPayouts")}
+        </button>
       </nav>
 
       {tab === "overview" && <OverviewTab />}
@@ -66,6 +77,7 @@ export function AdminPage() {
       {tab === "users" && <UsersTab />}
       {tab === "subscriptions" && <SubscriptionsTab />}
       {tab === "inviteCodes" && <InviteCodesTab />}
+      {tab === "payouts" && <PayoutsTab />}
     </div>
   );
 }
@@ -510,6 +522,113 @@ function InviteCodesTab() {
             </div>
           )}
         </>
+      )}
+    </div>
+  );
+}
+
+function PayoutsTab() {
+  const { t } = useTranslation();
+  const [requests, setRequests] = useState<AdminPayoutRequest[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [notes, setNotes] = useState<Record<string, string>>({});
+
+  async function load(currentPage: number) {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await api.fetchAdminPayouts({ page: currentPage, pageSize: PAGE_SIZE });
+      setRequests(data.requests);
+      setTotal(data.total);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("admin.errorLoad"));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    void load(page);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page]);
+
+  async function handleUpdate(id: string, status: "PAID" | "REJECTED") {
+    setBusyId(id);
+    try {
+      const { request } = await api.updatePayoutStatus(id, { status, adminNote: notes[id]?.trim() || undefined });
+      setRequests((prev) => prev.map((r) => (r.id === id ? request : r)));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("admin.errorLoad"));
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+  if (loading) return <LoadingState />;
+
+  return (
+    <div>
+      {error && <ErrorBanner message={error} onRetry={() => void load(page)} />}
+      {requests.length === 0 && !error && <EmptyState>{t("admin.noPayouts")}</EmptyState>}
+      <div className="admin-card-list">
+        {requests.map((r) => (
+          <div key={r.id} className="admin-card">
+            <div className="admin-card-main">
+              <strong>
+                {r.coachName} · {(r.amountCents / 100).toFixed(0)} {r.currency}
+              </strong>
+              <span>
+                {r.coachEmail} · {new Date(r.requestedAt).toLocaleDateString()}
+                {r.note ? ` · ${r.note}` : ""}
+              </span>
+            </div>
+            {r.status === "PENDING" ? (
+              <div className="admin-card-actions">
+                <input
+                  type="text"
+                  placeholder={t("admin.payoutNotePlaceholder")}
+                  value={notes[r.id] ?? ""}
+                  onChange={(e) => setNotes((prev) => ({ ...prev, [r.id]: e.target.value }))}
+                />
+                <button
+                  type="button"
+                  className="primary"
+                  disabled={busyId === r.id}
+                  onClick={() => void handleUpdate(r.id, "PAID")}
+                >
+                  {t("admin.payoutMarkPaid")}
+                </button>
+                <button
+                  type="button"
+                  className="danger"
+                  disabled={busyId === r.id}
+                  onClick={() => void handleUpdate(r.id, "REJECTED")}
+                >
+                  {t("admin.payoutReject")}
+                </button>
+              </div>
+            ) : (
+              <span className={`status-badge status-${r.status.toLowerCase()}`}>{t(PAYOUT_STATUS_KEY[r.status])}</span>
+            )}
+          </div>
+        ))}
+      </div>
+      {totalPages > 1 && (
+        <div className="admin-pagination">
+          <button type="button" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+            {t("admin.prevPage")}
+          </button>
+          <span>{t("admin.pageInfo", { page, totalPages })}</span>
+          <button type="button" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
+            {t("admin.nextPage")}
+          </button>
+        </div>
       )}
     </div>
   );

@@ -661,6 +661,7 @@ form button[type="submit"]:disabled {
 
 .status-badge.status-confirmed,
 .status-badge.status-approved,
+.status-badge.status-paid,
 .status-badge.status-active {
   background: var(--success-bg);
   color: var(--success-text);

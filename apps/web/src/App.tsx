@@ -10,6 +10,7 @@ import { CoachesPage } from "./coaches/CoachesPage";
 import { CrashFallback } from "./common/CrashFallback";
 import { LoadingState } from "./common/Feedback";
 import { DashboardPage } from "./dashboard/DashboardPage";
+import { EarningsPage } from "./earnings/EarningsPage";
 import { GoalsPage } from "./goals/GoalsPage";
 import { LanguageSwitcher } from "./i18n/LanguageSwitcher";
 import { LocaleProvider, useTranslation } from "./i18n/LocaleContext";
@@ -19,7 +20,17 @@ import { MySessionsPage } from "./sessions/MySessionsPage";
 import { ThemeProvider } from "./theme/ThemeContext";
 import { ThemeToggle } from "./theme/ThemeToggle";
 
-type Tab = "dashboard" | "goals" | "coaches" | "sessions" | "chat" | "ai" | "billing" | "profile" | "admin";
+type Tab =
+  | "dashboard"
+  | "goals"
+  | "coaches"
+  | "sessions"
+  | "chat"
+  | "ai"
+  | "billing"
+  | "earnings"
+  | "profile"
+  | "admin";
 
 function AppDashboard() {
   const { t } = useTranslation();
@@ -33,6 +44,7 @@ function AppDashboard() {
   }
 
   const isAdmin = user?.role === "ADMIN";
+  const isCoach = user?.role === "COACH";
 
   return (
     <>
@@ -58,6 +70,11 @@ function AppDashboard() {
         <button type="button" className={tab === "billing" ? "active" : ""} onClick={() => setTab("billing")}>
           {t("nav.billing")}
         </button>
+        {isCoach && (
+          <button type="button" className={tab === "earnings" ? "active" : ""} onClick={() => setTab("earnings")}>
+            {t("nav.earnings")}
+          </button>
+        )}
         <button type="button" className={tab === "profile" ? "active" : ""} onClick={() => setTab("profile")}>
           {t("nav.profile")}
         </button>
@@ -75,6 +92,7 @@ function AppDashboard() {
       {tab === "chat" && <ChatPage partnerId={chatPartnerId} />}
       {tab === "ai" && <AiCoachPage />}
       {tab === "billing" && <BillingPage />}
+      {tab === "earnings" && isCoach && <EarningsPage />}
       {tab === "profile" && <ProfilePage />}
       {tab === "admin" && isAdmin && <AdminPage />}
     </>

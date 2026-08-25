@@ -15,6 +15,7 @@ import { dashboardRouter } from "./dashboard/routes.js";
 import { env } from "./env.js";
 import { goalsRouter } from "./goals/routes.js";
 import { attachExpressErrorHandler, captureError, initMonitoring } from "./monitoring/sentry.js";
+import { payoutsRouter } from "./payouts/routes.js";
 import { sessionsRouter } from "./sessions/routes.js";
 import { usersRouter } from "./users/routes.js";
 
@@ -51,6 +52,7 @@ export function createApp(): express.Express {
   app.use("/api/chat", chatRouter);
   app.use("/api/billing", billingRouter);
   app.use("/api/ai", aiRouter);
+  app.use("/api/payouts", payoutsRouter);
 
   // Production'da bitta Render web-service ham API'ni, ham build qilingan frontendni
   // xizmat qiladi (alohida statik-sayt/CDN xizmati emas) — shu bilan brauzer nuqtai

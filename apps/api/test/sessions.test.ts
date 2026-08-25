@@ -77,6 +77,10 @@ describe("sessiya bron qilish", () => {
     expect(bookRes.status).toBe(201);
     expect(bookRes.body.session.status).toBe("CONFIRMED");
     expect(bookRes.body.session.videoLink).toBeTypeOf("string");
+    // Coach'ning bron paytidagi narxi/valyutasi sessiyaga suratga olinadi (payouts/service.ts
+    // coach daromadini shundan hisoblaydi) — createApprovedCoach default 5000 USD ishlatadi.
+    expect(bookRes.body.session.priceCents).toBe(5000);
+    expect(bookRes.body.session.currency).toBe("USD");
 
     // Endi shu slot boshqa hech kimga ko'rinmaydi.
     const availabilityRes = await request(app)

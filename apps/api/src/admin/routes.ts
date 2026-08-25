@@ -1,11 +1,17 @@
 import crypto from "node:crypto";
-import { CoachStatus, Role, SubscriptionPlan, SubscriptionStatus } from "@prisma/client";
+import { CoachStatus, PayoutStatus, Role, SubscriptionPlan, SubscriptionStatus } from "@prisma/client";
 import { Router } from "express";
 import { z } from "zod";
 import { requireAuth, requireRole } from "../auth/middleware.js";
 import { prisma } from "../db.js";
 import { asyncHandler } from "../lib/asyncHandler.js";
-import { toAdminCoachApplication, toAdminInviteCode, toAdminSubscription, toAdminUser } from "./serialize.js";
+import {
+  toAdminCoachApplication,
+  toAdminInviteCode,
+  toAdminPayoutRequest,
+  toAdminSubscription,
+  toAdminUser,
+} from "./serialize.js";
 
 export const adminRouter = Router();
 adminRouter.use(requireAuth, requireRole(Role.ADMIN));
@@ -302,5 +308,72 @@ adminRouter.delete(
     }
     await prisma.inviteCode.delete({ where: { id: code.id } });
     res.status(204).send();
+  }),
+);
+
+// ---------- Coach pul yechish so'rovlari ----------
+
+const listPayoutsSchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(20),
+  status: z.nativeEnum(PayoutStatus).optional(),
+});
+
+adminRouter.get(
+  "/payouts",
+  asyncHandler(async (req, res) => {
+    const parsed = listPayoutsSchema.safeParse(req.query);
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.issues[0].message });
+      return;
+    }
+    const { page, pageSize, status } = parsed.data;
+    const where = status ? { status } : {};
+
+    const [requests, total] = await Promise.all([
+      prisma.payoutRequest.findMany({
+        where,
+        orderBy: { requestedAt: "desc" },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        include: { coach: { include: { user: { select: { name: true, email: true } } } } },
+      }),
+      prisma.payoutRequest.count({ where }),
+    ]);
+
+    res.json({ requests: requests.map(toAdminPayoutRequest), total, page, pageSize });
+  }),
+);
+
+const updatePayoutSchema = z.object({
+  status: z.enum(["PAID", "REJECTED"]),
+  adminNote: z.string().trim().max(500).optional(),
+});
+
+/** So'rovni PAID/REJECTED qiladi — pul admin tomonidan tashqarida (bank o'tkazmasi va h.k.) jo'natiladi. */
+adminRouter.patch(
+  "/payouts/:id",
+  asyncHandler(async (req, res) => {
+    const parsed = updatePayoutSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.issues[0].message });
+      return;
+    }
+    const existing = await prisma.payoutRequest.findUnique({ where: { id: req.params.id } });
+    if (!existing) {
+      res.status(404).json({ error: "So'rov topilmadi" });
+      return;
+    }
+    if (existing.status !== PayoutStatus.PENDING) {
+      res.status(409).json({ error: "Bu so'rov allaqachon ko'rib chiqilgan" });
+      return;
+    }
+
+    const updated = await prisma.payoutRequest.update({
+      where: { id: existing.id },
+      data: { status: parsed.data.status, adminNote: parsed.data.adminNote, processedAt: new Date() },
+      include: { coach: { include: { user: { select: { name: true, email: true } } } } },
+    });
+    res.json({ request: toAdminPayoutRequest(updated) });
   }),
 );

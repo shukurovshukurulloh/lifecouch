@@ -1,6 +1,7 @@
 import type {
   AdminCoachApplication,
   AdminInviteCode,
+  AdminPayoutRequest,
   AdminStats,
   AdminSubscription,
   AdminUser,
@@ -11,10 +12,13 @@ import type {
   BetaStatus,
   ChatMessage,
   DashboardSummary,
+  EarningsSummary,
   GoalWithHabits,
   HabitProgress,
   InvoiceDto,
   MyCoachProfile,
+  PayoutRequestDto,
+  PayoutStatus,
   PlanDefinitionDto,
   PublicCoach,
   PublicUser,
@@ -276,6 +280,34 @@ export function fetchAdminSubscriptions(input: { page?: number; pageSize?: numbe
   if (input.pageSize) params.set("pageSize", String(input.pageSize));
   const qs = params.toString();
   return request(`/admin/subscriptions${qs ? `?${qs}` : ""}`);
+}
+
+export function fetchAdminPayouts(
+  input: { page?: number; pageSize?: number; status?: PayoutStatus } = {},
+): Promise<{ requests: AdminPayoutRequest[]; total: number; page: number; pageSize: number }> {
+  const params = new URLSearchParams();
+  if (input.page) params.set("page", String(input.page));
+  if (input.pageSize) params.set("pageSize", String(input.pageSize));
+  if (input.status) params.set("status", input.status);
+  const qs = params.toString();
+  return request(`/admin/payouts${qs ? `?${qs}` : ""}`);
+}
+
+export function updatePayoutStatus(
+  id: string,
+  input: { status: "PAID" | "REJECTED"; adminNote?: string },
+): Promise<{ request: AdminPayoutRequest }> {
+  return request(`/admin/payouts/${id}`, { method: "PATCH", body: JSON.stringify(input) });
+}
+
+// ---------- Coach daromadi ----------
+
+export function fetchMyEarnings(): Promise<{ summary: EarningsSummary; requests: PayoutRequestDto[] }> {
+  return request("/payouts/me");
+}
+
+export function requestPayout(input: { amountCents: number; note?: string }): Promise<{ request: PayoutRequestDto }> {
+  return request("/payouts/me", { method: "POST", body: JSON.stringify(input) });
 }
 
 export function fetchAdminInviteCodes(

@@ -4,6 +4,7 @@ import { createChatServer } from "./chat/socket.js";
 import { env } from "./env.js";
 import { captureError } from "./monitoring/sentry.js";
 import { scheduleDailyReminders } from "./reminders/job.js";
+import { scheduleSessionCompletion } from "./sessions/completionJob.js";
 
 // createApp() ichida initMonitoring() chaqiriladi — shu yerdan keyin Sentry
 // sozlangan bo'lsa (SENTRY_DSN mavjud bo'lsa) process darajasidagi kutilmagan
@@ -18,6 +19,7 @@ process.on("uncaughtException", (err) => {
 });
 
 scheduleDailyReminders();
+scheduleSessionCompletion();
 
 const httpServer = http.createServer(app);
 createChatServer(httpServer, env.webOrigin);

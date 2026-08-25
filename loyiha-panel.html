@@ -362,7 +362,7 @@
     <p class="progress-summary">
       <span class="progress-pct">100%</span>
       <span class="progress-bar"><span style="width: 100%"></span></span>
-      <span class="progress-note">MVP (8/8) + Sprint 08 Google OAuth bilan yakunlandi &middot; keyingi bosqich davom etmoqda</span>
+      <span class="progress-note">MVP (8/8) + Sprint 08 (Google OAuth) + Sprint 09 (coach daromadi) yakunlandi &middot; keyingi bosqich davom etmoqda</span>
     </p>
   </header>
 
@@ -379,6 +379,7 @@
       <a href="#sprint-6" data-status="done"><span class="num">06</span><span class="lbl"><span class="status-dot"></span>Statistika &amp; admin</span></a>
       <a href="#sprint-7" data-status="done"><span class="num">07</span><span class="lbl"><span class="status-dot"></span>Test &amp; reliz</span></a>
       <a href="#sprint-8" data-status="done"><span class="num">08</span><span class="lbl"><span class="status-dot"></span>Google OAuth</span></a>
+      <a href="#sprint-9" data-status="done"><span class="num">09</span><span class="lbl"><span class="status-dot"></span>Coach daromadi</span></a>
     </nav>
   </section>
 
@@ -581,6 +582,28 @@
         </div>
       </article>
 
+      <article class="sprint" id="sprint-9">
+        <div class="rail"><span class="dot dot--done"></span><span class="week">Hafta 16</span></div>
+        <div class="card">
+          <div class="card-top">
+            <p class="num">Sprint 09</p>
+            <span class="status-pill status-pill--done">Tugadi</span>
+          </div>
+          <h3>Coach daromadi va pul yechish</h3>
+          <div class="field">
+            <p class="field-label">Maqsad</p>
+            <p>Coach'lar o'z daromadini ko'rishi va qo'lda boshqariladigan pul yechish
+              so'rovi yuborishi.</p>
+          </div>
+          <div class="field">
+            <p class="field-label">Natija</p>
+            <p>Coach daromadini (jami/to'langan/kutilayotgan/yechish mumkin) ko'radi va
+              so'rov yuboradi; admin so'rovlarni ko'rib chiqib "to'landi" deb belgilaydi.</p>
+          </div>
+          <div class="tags"><span class="tag">payouts</span><span class="tag">cron</span><span class="tag">admin</span></div>
+        </div>
+      </article>
+
     </div>
   </section>
 
@@ -590,7 +613,8 @@
       <ul>
         <li>Mobil ilova (React Native)</li>
         <li>Apple orqali kirish (Google Sprint 08'da yakunlandi)</li>
-        <li>Coach uchun daromad hisoboti va pul yechish</li>
+        <li>Coach uchun avtomatik payout (Stripe Connect) — hozircha qo'lda
+          boshqariladigan so'rov (Sprint 09) ishlatiladi</li>
         <li>Guruh sessiyalari va jamoaviy dasturlar</li>
       </ul>
     </div>

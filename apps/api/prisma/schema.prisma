@@ -55,6 +55,12 @@ enum AiMessageRole {
   ASSISTANT
 }
 
+enum PayoutStatus {
+  PENDING
+  PAID
+  REJECTED
+}
+
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
@@ -131,6 +137,7 @@ model Coach {
 
   sessions          Session[]
   availabilitySlots AvailabilitySlot[]
+  payoutRequests    PayoutRequest[]
 
   @@index([status])
 }
@@ -201,6 +208,11 @@ model Session {
   durationMinutes Int               @default(60)
   status          SessionStatus     @default(PENDING)
   videoLink       String?
+  /// Bron paytida `coach.priceCents`/`currency`dan suratga olinadi (payouts/service.ts
+  /// coach daromadini shundan hisoblaydi) — coach keyin narxini o'zgartirsa ham tarixiy
+  /// daromad o'zgarmasin. Eski (bu ustun qo'shilishidan oldingi) sessiyalarda null.
+  priceCents      Int?
+  currency        String?
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
 }
@@ -260,6 +272,26 @@ model InviteCode {
   createdAt   DateTime  @default(now())
 
   @@index([createdById])
+}
+
+/// Coach'ning bir martalik pul yechish so'rovi (qo'lda boshqariladi — admin
+/// tashqarida pul jo'natib, statusni PAID/REJECTED qiladi). Balans hisobi
+/// (payouts/service.ts) COMPLETED sessiyalar yig'indisidan hisoblanadi, alohida
+/// "balans" ustuni saqlanmaydi.
+model PayoutRequest {
+  id          String       @id @default(cuid())
+  coachId     String
+  coach       Coach        @relation(fields: [coachId], references: [id], onDelete: Cascade)
+  amountCents Int
+  currency    String
+  status      PayoutStatus @default(PENDING)
+  note        String?
+  adminNote   String?
+  requestedAt DateTime     @default(now())
+  processedAt DateTime?
+
+  @@index([coachId])
+  @@index([status])
 }
 
 /// AI coach bilan suhbat tarixidagi bitta xabar (foydalanuvchidan yoki AI javobi).
