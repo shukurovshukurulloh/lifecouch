@@ -1,5 +1,6 @@
 import request from "supertest";
 import { describe, expect, it } from "vitest";
+import { prisma } from "../src/db.js";
 import { testApp } from "./helpers.js";
 
 describe("POST /api/auth/register", () => {
@@ -49,6 +50,19 @@ describe("POST /api/auth/login", () => {
   it("mavjud bo'lmagan emailni rad etadi", async () => {
     const app = testApp();
     const res = await request(app).post("/api/auth/login").send({ email: "yoq@example.com", password: "password123" });
+    expect(res.status).toBe(401);
+  });
+
+  it("parolsiz (Google-only) hisobga parol bilan kirishga urinishni rad etadi", async () => {
+    const app = testApp();
+    // Google orqali yaratilgan hisobda passwordHash yo'q (null) — bunday hisob login.ts
+    // uchun ham xuddi shu generik xatoni qaytarishi kerak.
+    await prisma.user.create({
+      data: { email: "google-only@example.com", name: "Google Foydalanuvchi", googleId: "google-sub-login-test" },
+    });
+    const res = await request(app)
+      .post("/api/auth/login")
+      .send({ email: "google-only@example.com", password: "password123" });
     expect(res.status).toBe(401);
   });
 });

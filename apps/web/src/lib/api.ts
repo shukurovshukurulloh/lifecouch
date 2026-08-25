@@ -66,6 +66,10 @@ export function fetchBetaStatus(): Promise<BetaStatus> {
   return request<BetaStatus>("/auth/beta-status");
 }
 
+export function googleLogin(input: { credential: string; inviteCode?: string }): Promise<AuthResponse> {
+  return request<AuthResponse>("/auth/google", { method: "POST", body: JSON.stringify(input) });
+}
+
 export function login(input: { email: string; password: string }): Promise<AuthResponse> {
   return request<AuthResponse>("/auth/login", { method: "POST", body: JSON.stringify(input) });
 }

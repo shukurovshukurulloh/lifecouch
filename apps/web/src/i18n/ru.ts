@@ -25,6 +25,8 @@ export const ru: Record<TranslationKey, string> = {
   "auth.submitRegister": "Зарегистрироваться",
   "auth.errorLogin": "Ошибка при входе",
   "auth.errorRegister": "Ошибка при регистрации",
+  "auth.errorGoogle": "Ошибка при входе через Google",
+  "auth.orDivider": "или",
 
   "profile.greeting": "Привет, {{name}}",
   "profile.name": "Имя",

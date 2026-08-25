@@ -9,6 +9,7 @@ const { mockApi } = vi.hoisted(() => ({
   mockApi: {
     login: vi.fn(),
     register: vi.fn(),
+    googleLogin: vi.fn(),
     logout: vi.fn(),
     refresh: vi.fn(),
   },
@@ -101,6 +102,20 @@ describe("AuthContext", () => {
       name: "Ali",
       inviteCode: "INVITE123",
     });
+    expect(result.current.user).toEqual(user);
+  });
+
+  it("loginWithGoogle credential va inviteCode'ni api.googleLogin()ga uzatadi", async () => {
+    mockApi.refresh.mockRejectedValue(new Error("no session"));
+    mockApi.googleLogin.mockResolvedValue({ accessToken: "tok-5", user });
+    const { result } = renderHook(() => useAuth(), { wrapper: AuthProviderWrapper });
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await act(async () => {
+      await result.current.loginWithGoogle("id-token-123", "INVITE123");
+    });
+
+    expect(mockApi.googleLogin).toHaveBeenCalledWith({ credential: "id-token-123", inviteCode: "INVITE123" });
     expect(result.current.user).toEqual(user);
   });
 

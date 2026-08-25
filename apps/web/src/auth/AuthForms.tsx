@@ -1,7 +1,8 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import * as api from "../lib/api";
 import { useTranslation } from "../i18n/LocaleContext";
 import { useAuth } from "./AuthContext";
+import { GoogleSignInButton, isGoogleSignInConfigured } from "./GoogleSignInButton";
 
 export function AuthForms() {
   const { t } = useTranslation();
@@ -12,7 +13,22 @@ export function AuthForms() {
   const [inviteCode, setInviteCode] = useState("");
   const [inviteRequired, setInviteRequired] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const { login, register, error } = useAuth();
+  const { login, register, loginWithGoogle, error } = useAuth();
+
+  // GoogleSignInButton'ga barqaror callback beriladi (har harf kiritilganda tugma qayta
+  // render bo'lib ketmasligi uchun) — eng so'nggi inviteCode qiymati ref orqali o'qiladi.
+  const inviteCodeRef = useRef(inviteCode);
+  useEffect(() => {
+    inviteCodeRef.current = inviteCode;
+  }, [inviteCode]);
+  const handleGoogleCredential = useCallback(
+    (credential: string) => {
+      loginWithGoogle(credential, inviteCodeRef.current.trim() || undefined).catch(() => {
+        // Xato AuthContext ichida saqlanadi va pastda ko'rsatiladi.
+      });
+    },
+    [loginWithGoogle],
+  );
 
   useEffect(() => {
     // Beta-reliz yoqilganmi — yoqilgan bo'lsa ro'yxatdan o'tish formasida
@@ -90,6 +106,14 @@ export function AuthForms() {
           {mode === "login" ? t("auth.submitLogin") : t("auth.submitRegister")}
         </button>
       </form>
+      {isGoogleSignInConfigured && (
+        <>
+          <div className="auth-divider">
+            <span>{t("auth.orDivider")}</span>
+          </div>
+          <GoogleSignInButton onCredential={handleGoogleCredential} />
+        </>
+      )}
     </div>
   );
 }

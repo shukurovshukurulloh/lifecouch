@@ -10,6 +10,7 @@ interface AuthContextValue {
   error: string | null;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, name: string, inviteCode?: string) => Promise<void>;
+  loginWithGoogle: (credential: string, inviteCode?: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
@@ -62,6 +63,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [t]);
 
+  const loginWithGoogle = useCallback(async (credential: string, inviteCode?: string) => {
+    setError(null);
+    try {
+      const session = await api.googleLogin({ credential, inviteCode });
+      setAccessToken(session.accessToken);
+      setUser(session.user);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("auth.errorGoogle"));
+      throw err;
+    }
+  }, [t]);
+
   const logout = useCallback(async () => {
     await api.logout().catch(() => undefined);
     setAccessToken(null);
@@ -77,7 +90,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, error, login, register, logout, refreshProfile }}>
+    <AuthContext.Provider value={{ user, loading, error, login, register, loginWithGoogle, logout, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );

@@ -32,4 +32,12 @@ export const env = {
   get betaInviteRequired(): boolean {
     return process.env.BETA_INVITE_REQUIRED === "true";
   },
+  // Google OAuth Client ID (Google Cloud Console). Ixtiyoriy — bo'lmasa
+  // auth/googleClient.ts null qaytaradi va Google tugmasi frontend'da
+  // ko'rsatilmaydi (VITE_GOOGLE_CLIENT_ID ham bo'sh qoladi). betaInviteRequired
+  // kabi getter — testlarda (test/googleAuth.test.ts) process restart
+  // qilmasdan yoqib/o'chirish uchun.
+  get googleClientId(): string | undefined {
+    return process.env.GOOGLE_CLIENT_ID;
+  },
 };

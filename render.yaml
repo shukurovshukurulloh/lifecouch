@@ -69,3 +69,11 @@ services:
       # bo'lganda Dashboard'da "true"ga o'rnatiladi (auth/routes.ts: /auth/register).
       - key: BETA_INVITE_REQUIRED
         sync: false
+      # Google OAuth — ikkalasi ham bir xil qiymat (Google Cloud Console client ID).
+      # VITE_GOOGLE_CLIENT_ID build vaqtida (buildCommand'dagi `web build`) kerak,
+      # chunki bitta Render web-service backend'ni ham, build qilingan frontend'ni
+      # ham xizmat qiladi (sprints/07-test-reliz.md'dagi "Hosting" qaroriga qarang).
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: VITE_GOOGLE_CLIENT_ID
+        sync: false

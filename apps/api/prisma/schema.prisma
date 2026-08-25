@@ -58,7 +58,10 @@ enum AiMessageRole {
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
-  passwordHash String
+  /// Google orqali yaratilgan hisoblarda yo'q (null) — login handler buni tekshiradi.
+  passwordHash String?
+  /// Google "sub" claim'i — Google orqali kirgan/bog'langan hisoblarda o'rnatiladi.
+  googleId     String?  @unique
   name         String
   avatarUrl    String?
   bio          String?

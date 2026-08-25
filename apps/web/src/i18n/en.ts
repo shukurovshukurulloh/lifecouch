@@ -25,6 +25,8 @@ export const en: Record<TranslationKey, string> = {
   "auth.submitRegister": "Sign up",
   "auth.errorLogin": "Something went wrong while logging in",
   "auth.errorRegister": "Something went wrong while signing up",
+  "auth.errorGoogle": "Something went wrong while signing in with Google",
+  "auth.orDivider": "or",
 
   "profile.greeting": "Hi, {{name}}",
   "profile.name": "Name",

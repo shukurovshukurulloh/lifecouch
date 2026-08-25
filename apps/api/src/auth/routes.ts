@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import type { Role } from "@prisma/client";
+import type { Prisma, Role } from "@prisma/client";
 import type { Response } from "express";
 import { Router } from "express";
 import { z } from "zod";
@@ -8,6 +8,7 @@ import { env } from "../env.js";
 import { asyncHandler } from "../lib/asyncHandler.js";
 import { sendPasswordResetEmail } from "../mailer.js";
 import { toPublicUser } from "../users/serialize.js";
+import { getGoogleClient } from "./googleClient.js";
 import { hashPassword, verifyPassword } from "./hash.js";
 import {
   generateRefreshToken,
@@ -20,8 +21,24 @@ import {
 
 export const authRouter = Router();
 
-/** `$transaction` ichidan tashqariga chiqarib, register handler'da 400'ga aylantiriladi. */
+/** `$transaction` ichidan tashqariga chiqarib, register/google handler'larda 400'ga aylantiriladi. */
 class InviteCodeError extends Error {}
+
+/**
+ * Taklifnoma kodini tekshiradi va "ishlatilgan" deb belgilaydi (register va
+ * google handler'lari ikkalasi ham ishlatadi). `usedById: null` shartini
+ * `updateMany` ichida ham tekshiramiz — shu bilan ikkita parallel so'rov bir
+ * xil kodni ikki marta ishlata olmaydi (poyga holati yo'q).
+ */
+async function consumeInviteCode(tx: Prisma.TransactionClient, code: string): Promise<void> {
+  const { count } = await tx.inviteCode.updateMany({
+    where: { code, usedById: null },
+    data: { usedAt: new Date() },
+  });
+  if (count === 0) {
+    throw new InviteCodeError();
+  }
+}
 
 const isProd = env.nodeEnv === "production";
 const RESET_TOKEN_TTL_MS = 60 * 60 * 1000; // 1 soat
@@ -81,15 +98,7 @@ authRouter.post(
     try {
       const user = await prisma.$transaction(async (tx) => {
         if (env.betaInviteRequired && inviteCode) {
-          // usedById: null shartini update ichida ham tekshiramiz — shu bilan ikkita
-          // parallel so'rov bir xil kodni ikki marta ishlata olmaydi (poyga holati yo'q).
-          const { count } = await tx.inviteCode.updateMany({
-            where: { code: inviteCode, usedById: null },
-            data: { usedAt: new Date() },
-          });
-          if (count === 0) {
-            throw new InviteCodeError();
-          }
+          await consumeInviteCode(tx, inviteCode);
         }
 
         const created = await tx.user.create({ data: { email, passwordHash, name } });
@@ -130,14 +139,105 @@ authRouter.post(
     }
     const { email, password } = parsed.data;
 
+    // passwordHash null bo'lishi mumkin — Google orqali yaratilgan hisobda parol yo'q
+    // (bunday hisob faqat /auth/google orqali kiradi). Xato xabari baribir bir xil,
+    // hisob mavjudligi/turi oshkor qilinmaydi.
     const user = await prisma.user.findUnique({ where: { email } });
-    if (!user || !(await verifyPassword(password, user.passwordHash))) {
+    if (!user || !user.passwordHash || !(await verifyPassword(password, user.passwordHash))) {
       res.status(401).json({ error: "Email yoki parol noto'g'ri" });
       return;
     }
 
     const accessToken = await issueSession(res, user.id, user.role);
     res.json({ accessToken, user: toPublicUser(user) });
+  }),
+);
+
+const googleLoginSchema = z.object({
+  credential: z.string().min(1),
+  inviteCode: z.string().trim().min(1).optional(),
+});
+
+/**
+ * Google Identity Services'dan kelgan ID token (`credential`) orqali kirish/ro'yxatdan
+ * o'tish. `googleId` bo'yicha mavjud hisob topilsa shu bilan kiradi; topilmasa email
+ * bo'yicha mavjud (parol bilan ro'yxatdan o'tgan) hisobga bog'lanadi (Google
+ * `email_verified` kafolat bergani uchun xavfsiz); ikkalasi ham topilmasa — yangi
+ * hisob yaratiladi. Beta-reliz yoqilganda YANGI hisob yaratish ham taklifnoma kod
+ * talab qiladi (aks holda bu yo'l /auth/register'dagi cheklovni chetlab o'tgan bo'lardi);
+ * mavjud hisobga bog'lash uchun kod shart emas.
+ */
+authRouter.post(
+  "/google",
+  asyncHandler(async (req, res) => {
+    const parsed = googleLoginSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.issues[0].message });
+      return;
+    }
+
+    const client = getGoogleClient();
+    if (!client) {
+      res.status(501).json({ error: "Google orqali kirish hozircha sozlanmagan" });
+      return;
+    }
+
+    let payload;
+    try {
+      const ticket = await client.verifyIdToken({ idToken: parsed.data.credential, audience: env.googleClientId });
+      payload = ticket.getPayload();
+    } catch {
+      payload = undefined;
+    }
+    if (!payload?.sub || !payload.email || !payload.email_verified) {
+      res.status(401).json({ error: "Google tokeni yaroqsiz yoki email tasdiqlanmagan" });
+      return;
+    }
+    const googlePayload = payload;
+
+    try {
+      const user = await prisma.$transaction(async (tx) => {
+        const byGoogleId = await tx.user.findUnique({ where: { googleId: googlePayload.sub } });
+        if (byGoogleId) {
+          return byGoogleId;
+        }
+
+        const byEmail = await tx.user.findUnique({ where: { email: googlePayload.email! } });
+        if (byEmail) {
+          return tx.user.update({ where: { id: byEmail.id }, data: { googleId: googlePayload.sub } });
+        }
+
+        if (env.betaInviteRequired) {
+          if (!parsed.data.inviteCode) {
+            throw new InviteCodeError();
+          }
+          await consumeInviteCode(tx, parsed.data.inviteCode);
+        }
+
+        const created = await tx.user.create({
+          data: {
+            email: googlePayload.email!,
+            name: googlePayload.name ?? googlePayload.email!.split("@")[0],
+            googleId: googlePayload.sub,
+            avatarUrl: googlePayload.picture ?? null,
+          },
+        });
+        if (env.betaInviteRequired && parsed.data.inviteCode) {
+          await tx.inviteCode.update({ where: { code: parsed.data.inviteCode }, data: { usedById: created.id } });
+        }
+        await tx.subscription.create({ data: { userId: created.id } });
+        return created;
+      });
+
+      const accessToken = await issueSession(res, user.id, user.role);
+      res.json({ accessToken, user: toPublicUser(user) });
+    } catch (err) {
+      if (err instanceof InviteCodeError) {
+        res.status(400).json({ error: "Taklifnoma kodi yaroqsiz yoki allaqachon ishlatilgan" });
+        return;
+      }
+      throw err;
+    }
   }),
 );
 

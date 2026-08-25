@@ -27,6 +27,8 @@ export const uz = {
   "auth.submitRegister": "Ro'yxatdan o'tish",
   "auth.errorLogin": "Kirishda xatolik yuz berdi",
   "auth.errorRegister": "Ro'yxatdan o'tishda xatolik yuz berdi",
+  "auth.errorGoogle": "Google orqali kirishda xatolik yuz berdi",
+  "auth.orDivider": "yoki",
 
   "profile.greeting": "Salom, {{name}}",
   "profile.name": "Ism",
